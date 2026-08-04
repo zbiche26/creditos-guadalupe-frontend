@@ -1,46 +1,47 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+// Importamos la imagen que acabas de guardar
+import logo from '../assets/logo.png';
 
 export default function Login() {
-  // Estados para guardar lo que el usuario escribe
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Herramienta de React Router para cambiar de página
   const navigate = useNavigate();
 
-  // Función que se ejecuta al enviar el formulario
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Evita que la página se recargue
-    console.log("Intentando ingresar con:", email, password);
-
-    // Por ahora, al hacer clic simulamos el éxito y vamos al dashboard
+    e.preventDefault();
     navigate('/dashboard');
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      {/* Tarjeta central */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+    // Fondo principal tomando el color azul oscuro del logo
+    <div className="min-h-screen bg-[#0c1928] flex items-center justify-center p-4">
 
-        {/* Encabezado */}
+      {/* Tarjeta central ligeramente más clara para hacer contraste */}
+      <div className="bg-[#13253b] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#1e3a5f]">
+
+        {/* Encabezado con el Logo integrado */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-700">Créditos Guadalupe</h1>
-          <p className="text-gray-500 mt-2">Ingresa tus credenciales para continuar</p>
+          <img
+            src={logo}
+            alt="Logo Créditos Guadalupe"
+            className="w-40 h-auto mx-auto mb-2 rounded-lg"
+          />
+          <h2 className="text-xl font-serif text-white tracking-wide mt-4">Panel Gerencial</h2>
+          <p className="text-gray-400 mt-1 text-sm">Ingresa tus credenciales para continuar</p>
         </div>
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Campo Correo */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-2" htmlFor="email">
+            <label className="block text-gray-300 text-sm font-semibold mb-2" htmlFor="email">
               Correo Electrónico
             </label>
             <input
               type="email"
               id="email"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 bg-[#0c1928] text-white border border-[#1e3a5f] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d59d47] focus:border-transparent transition placeholder-gray-600"
               placeholder="admin@guadalupe.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -48,15 +49,14 @@ export default function Login() {
             />
           </div>
 
-          {/* Campo Contraseña */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-2" htmlFor="password">
+            <label className="block text-gray-300 text-sm font-semibold mb-2" htmlFor="password">
               Contraseña
             </label>
             <input
               type="password"
               id="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 bg-[#0c1928] text-white border border-[#1e3a5f] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d59d47] focus:border-transparent transition placeholder-gray-600"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -64,12 +64,11 @@ export default function Login() {
             />
           </div>
 
-          {/* Botón */}
           <button
             type="submit"
-            className="w-full bg-blue-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-800 transition duration-300 shadow-md"
+            className="w-full bg-[#d59d47] text-[#0c1928] font-bold py-3 px-4 rounded-lg hover:bg-[#eeb153] transition duration-300 shadow-lg mt-4"
           >
-            Iniciar Sesión
+            Ingresar al Sistema
           </button>
 
         </form>
