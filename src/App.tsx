@@ -1,10 +1,19 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+
 function App() {
   return (
-    <div>
-      <h1 className="text-4xl text-blue-700 font-bold text-center mt-10">
-        Panel Gerencial - Créditos Guadalupe
-      </h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        {/* Ruta por defecto redirige al login */}
+        <Route path="/" element={<Navigate to="/login" />} />
+
+        {/* Nuestras dos pantallas principales */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
