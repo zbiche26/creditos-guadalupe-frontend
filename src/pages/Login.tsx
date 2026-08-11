@@ -16,21 +16,26 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // Hacemos la petición real a FastAPI (asumiendo que tu endpoint es /login o /token)
-      // Ajusta la ruta '/login' según cómo la hayas definido en tu main.py
-      const response = await api.post('/login', {
+      // 1. Apuntamos a la ruta exacta de FastAPI (con la barra al final)
+      const response = await api.post('/login/', {
         email: email,
         password: password
       });
 
-      // Si el backend responde bien, guardamos el token (si aplica) y vamos al dashboard
       console.log("Respuesta del servidor:", response.data);
-      // localStorage.setItem('token', response.data.token);
 
-      navigate('/dashboard');
+      // 2. ¡Atrapamos el token real que envía tu backend y lo guardamos!
+      if (response.data.token_acceso) {
+        localStorage.setItem('token', response.data.token_acceso);
+        navigate('/dashboard');
+      } else {
+        // Por si el backend responde un 200 pero nos dice que hay un error lógico
+        setError(response.data.detalle || 'Error al iniciar sesión');
+      }
+
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      // Si FastAPI devuelve un error (ej. credenciales inválidas), lo mostramos
+      // Si FastAPI devuelve un error 401 o similar, lo mostramos en pantalla
       setError('Correo o contraseña incorrectos. Por favor, intenta de nuevo.');
     } finally {
       setIsLoading(false);
