@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-guadalupe-azul text-guadalupe-blanco font-sans antialiased;
+  }
+}
