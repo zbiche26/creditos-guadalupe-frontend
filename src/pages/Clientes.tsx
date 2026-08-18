@@ -228,8 +228,9 @@ export default function Clientes() {
                       <span className="text-gray-300 font-semibold w-[132px]">Ruta:</span>
                       <span className="text-white font-medium">001</span> {/* Modificar en el futuro cuando rutas sean dinámicas */}
                     </div>
-                    <button className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition">
-                      Ver Créditos
+                    <button onClick={() => navigate(`/clientes/${clienteSeleccionado.id}/creditos`, { state: { cliente: clienteSeleccionado } })}
+                            className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition">
+                       Ver Créditos
                     </button>
                   </div>
                 </div>
