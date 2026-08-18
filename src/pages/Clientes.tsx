@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Mail, Hash, Map } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Mail, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
+// 1. Añadimos los nuevos campos que el backend enviará en el futuro
 interface Cliente {
   id?: string;
   ruta_id: string;
@@ -19,7 +20,9 @@ interface Cliente {
   fiador_direccion?: string;
   fiador_barrio?: string;
   fiador_contacto?: string;
-  created_at?: string; // Fecha de vinculación automática de Supabase
+  created_at?: string;
+  estado_credito?: string; // <-- NUEVO: Para recibir el color real
+  dias_mora?: number;      // <-- NUEVO: Para saber cuántos días debe
 }
 
 export default function Clientes() {
@@ -27,7 +30,6 @@ export default function Clientes() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Estado para controlar qué cliente estamos viendo en el modal
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
 
   const navigate = useNavigate();
@@ -56,11 +58,41 @@ export default function Clientes() {
     fetchClientes();
   }, []);
 
-  // Función para formatear la fecha que viene de Supabase
   const formatearFecha = (fechaISO?: string) => {
     if (!fechaISO) return 'N/A';
     const fecha = new Date(fechaISO);
     return `${fecha.getDate()}/${fecha.getMonth() + 1}/${fecha.getFullYear()}`;
+  };
+
+  // 2. LA FUNCIÓN ESTRELLA: Genera los colores visuales
+  const renderEstadoBadge = (estado_credito: string, diasMora: number = 0) => {
+    switch (estado_credito) {
+      case 'AL_DIA':
+        return (
+          <span className="bg-green-500/20 text-green-400 px-3 py-1.5 rounded-full text-[10px] font-extrabold border border-green-500/30 whitespace-nowrap tracking-wider">
+            AL DÍA
+          </span>
+        );
+      case 'MORA':
+        return (
+          <span className="bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-[10px] font-extrabold border border-red-500/30 whitespace-nowrap tracking-wider">
+            EN MORA ({diasMora} DÍAS)
+          </span>
+        );
+      case 'PROXIMO':
+        return (
+          <span className="bg-yellow-500/20 text-[#ffc107] px-3 py-1.5 rounded-full text-[10px] font-extrabold border border-[#ffc107]/30 whitespace-nowrap tracking-wider">
+            PRÓXIMO A PAGAR
+          </span>
+        );
+      case 'SIN_CREDITO':
+      default:
+        return (
+          <span className="bg-blue-500/20 text-blue-400 px-3 py-1.5 rounded-full text-[10px] font-extrabold border border-blue-500/30 whitespace-nowrap tracking-wider">
+            SIN CRÉDITO
+          </span>
+        );
+    }
   };
 
   return (
@@ -91,7 +123,7 @@ export default function Clientes() {
                 <th className="px-5 py-4 font-semibold">CIUDAD</th>
                 <th className="px-5 py-4 font-semibold">DIRECCIÓN</th>
                 <th className="px-5 py-4 font-semibold">CELULAR</th>
-                <th className="px-5 py-4 font-semibold">CORREO</th>
+                <th className="px-5 py-4 font-semibold text-center">ESTADO</th>
                 <th className="px-5 py-4 font-semibold text-center">ACCIONES</th>
               </tr>
             </thead>
@@ -109,65 +141,76 @@ export default function Clientes() {
                   <td colSpan={9} className="px-6 py-12 text-center text-gray-400 font-medium">Aún no hay clientes registrados.</td>
                 </tr>
               ) : (
-                clientes.map((cliente, index) => (
-                  <tr key={index} className="hover:bg-[#2a354a] transition border-b border-gray-700/20 last:border-0">
-                    <td className="px-5 py-4 text-center font-bold text-gray-500">
-                      {(index + 1).toString().padStart(2, '0')}
-                    </td>
-                    <td className="px-5 py-4 text-center text-[#ffc107] font-semibold">
-                      {cliente.numero_credito || 'N/A'}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 font-medium text-white">
-                        <CreditCard size={15} className="text-gray-400" /> {cliente.documento_identidad}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs shrink-0">
-                          <User size={14} fill="currentColor" />
+                clientes.map((cliente, index) => {
+
+                  // 👇 3. SIMULACIÓN VISUAL (Mientras conectamos el backend) 👇
+                  // Esto asignará un color diferente a cada cliente basado en su posición en la lista.
+                  // Si el backend envía el dato real (cliente.estado_credito), usará el real.
+                  const estadosPrueba = ['AL_DIA', 'MORA', 'PROXIMO', 'SIN_CREDITO'];
+                  const estadoMostrar = cliente.estado_credito || estadosPrueba[index % 4];
+                  const diasMoraMostrar = cliente.dias_mora || (estadoMostrar === 'MORA' ? Math.floor(Math.random() * 5) + 1 : 0);
+
+                  return (
+                    <tr key={index} className="hover:bg-[#2a354a] transition border-b border-gray-700/20 last:border-0">
+                      <td className="px-5 py-4 text-center font-bold text-gray-500">
+                        {(index + 1).toString().padStart(2, '0')}
+                      </td>
+                      <td className="px-5 py-4 text-center text-[#ffc107] font-semibold">
+                        {cliente.numero_credito || 'N/A'}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2 font-medium text-white">
+                          <CreditCard size={15} className="text-gray-400" /> {cliente.documento_identidad}
                         </div>
-                        <span className="font-semibold text-white">{cliente.nombre_completo}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-gray-400">
-                      <div className="flex items-center gap-2">
-                        <Map size={15} className="text-gray-400" /> {cliente.ciudad || 'Manizales'}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-gray-400">
-                      <div className="flex items-center gap-2">
-                        <MapPin size={15} className="text-gray-400" /> {cliente.direccion}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-gray-400">
-                      <div className="flex items-center gap-1.5">
-                        <Phone size={14} /> {cliente.telefono}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-gray-400">
-                      <div className="flex items-center gap-1.5">
-                        <Mail size={14} /> {cliente.correo || 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <button
-                        onClick={() => setClienteSeleccionado(cliente)}
-                        className="p-2 bg-gray-700/50 hover:bg-[#ffc107] text-gray-300 hover:text-[#111927] rounded-lg transition"
-                        title="Ver Perfil"
-                      >
-                        <Eye size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs shrink-0">
+                            <User size={14} fill="currentColor" />
+                          </div>
+                          <span className="font-semibold text-white">{cliente.nombre_completo}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-gray-400">
+                        <div className="flex items-center gap-2">
+                          <Map size={15} className="text-gray-400" /> {cliente.ciudad || 'Manizales'}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-gray-400">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={15} className="text-gray-400" /> {cliente.direccion}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-gray-400">
+                        <div className="flex items-center gap-1.5">
+                          <Phone size={14} /> {cliente.telefono}
+                        </div>
+                      </td>
+
+                      {/* CELDA DE ESTADO CON LOS COLORES */}
+                      <td className="px-5 py-4 text-center">
+                        {renderEstadoBadge(estadoMostrar, diasMoraMostrar)}
+                      </td>
+
+                      <td className="px-5 py-4 text-center">
+                        <button
+                          onClick={() => setClienteSeleccionado(cliente)}
+                          className="p-2 bg-gray-700/50 hover:bg-[#ffc107] text-gray-300 hover:text-[#111927] rounded-lg transition"
+                          title="Ver Perfil"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* MODAL DE PERFIL DEL CLIENTE (Basado en la imagen de referencia) */}
+      {/* MODAL DE PERFIL DEL CLIENTE */}
       {clienteSeleccionado && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
 
@@ -226,7 +269,7 @@ export default function Clientes() {
                   <div className="flex justify-between items-center pt-2">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-300 font-semibold w-[132px]">Ruta:</span>
-                      <span className="text-white font-medium">001</span> {/* Modificar en el futuro cuando rutas sean dinámicas */}
+                      <span className="text-white font-medium">001</span>
                     </div>
                     <button onClick={() => navigate(`/clientes/${clienteSeleccionado.id}/creditos`, { state: { cliente: clienteSeleccionado } })}
                             className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition">
