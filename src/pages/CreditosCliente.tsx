@@ -75,8 +75,8 @@ export default function CreditosCliente() {
     try {
       const payloadAbono = {
         empresa_id: "6608657b-4a69-408c-a61f-99e1acbfa636",
-        prestamo_id: prestamosActivos[0].id, // Se aplica al crédito más antiguo
-        cobrador_id: "1548fd5c-997a-4a96-ade1-3ca4ae8e148b", // Reemplazar luego con ID del usuario logueado
+        prestamo_id: prestamosActivos[0].id,
+        cobrador_id: "ab1cc484-0d3c-49a3-9532-42dd17a49906", // <-- Tu ID largo copiado aquí
         monto_pagado: parseFloat(montoAbono)
       };
 
@@ -88,7 +88,7 @@ export default function CreditosCliente() {
 
     } catch (err: any) {
       console.error("Error al procesar pago:", err);
-      alert("Error: " + (err.response?.data?.detalle || "Revisa la consola"));
+      alert("Error: " + (err.response?.data?.detail || "Revisa la consola"));
     }
   };
 
