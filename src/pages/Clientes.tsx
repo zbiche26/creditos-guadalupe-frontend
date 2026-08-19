@@ -146,9 +146,8 @@ export default function Clientes() {
                   // 👇 3. SIMULACIÓN VISUAL (Mientras conectamos el backend) 👇
                   // Esto asignará un color diferente a cada cliente basado en su posición en la lista.
                   // Si el backend envía el dato real (cliente.estado_credito), usará el real.
-                  const estadosPrueba = ['AL_DIA', 'MORA', 'PROXIMO', 'SIN_CREDITO'];
-                  const estadoMostrar = cliente.estado_credito || estadosPrueba[index % 4];
-                  const diasMoraMostrar = cliente.dias_mora || (estadoMostrar === 'MORA' ? Math.floor(Math.random() * 5) + 1 : 0);
+                  const estadoMostrar = cliente.estado_credito || 'SIN_CREDITO';
+                  const diasMoraMostrar = cliente.dias_mora || 0;
 
                   return (
                     <tr key={index} className="hover:bg-[#2a354a] transition border-b border-gray-700/20 last:border-0">
