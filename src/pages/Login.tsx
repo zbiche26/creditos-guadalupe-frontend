@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png';
-import api from '../services/api'; // <-- Importamos nuestro puente de comunicación
+import logo from '../assets/logo.png'; // <-- Mantenemos tu importación del logo real
+import api from '../services/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // <-- Nuevo estado para mostrar errores
-  const [isLoading, setIsLoading] = useState(false); // <-- Estado para el botón de carga
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,27 +17,22 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // 1. Apuntamos a la ruta exacta de FastAPI (con la barra al final)
       const response = await api.post('/login/', {
         email: email,
         password: password
       });
 
-      console.log("Respuesta del servidor:", response.data);
-
-      // 2. ¡Atrapamos el token real que envía tu backend y lo guardamos!
       if (response.data.token_acceso) {
+        // Guardamos el token y el email exactamente como lo tenías
         localStorage.setItem('token', response.data.token_acceso);
-        localStorage.setItem('usuario_email', email); // <-- AÑADE ESTA LÍNEA
+        localStorage.setItem('usuario_email', email); 
         navigate('/dashboard');
       } else {
-        // Por si el backend responde un 200 pero nos dice que hay un error lógico
         setError(response.data.detalle || 'Error al iniciar sesión');
       }
 
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      // Si FastAPI devuelve un error 401 o similar, lo mostramos en pantalla
       setError('Correo o contraseña incorrectos. Por favor, intenta de nuevo.');
     } finally {
       setIsLoading(false);
@@ -44,65 +40,106 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c1928] flex items-center justify-center p-4">
-      <div className="bg-[#13253b] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#1e3a5f]">
-
-        <div className="text-center mb-8">
-          <img src={logo} alt="Logo Créditos Guadalupe" className="w-40 h-auto mx-auto mb-2 rounded-lg" />
-          <h2 className="text-xl font-serif text-white tracking-wide mt-4">Panel Gerencial</h2>
-          <p className="text-gray-400 mt-1 text-sm">Ingresa tus credenciales para continuar</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#151c2c] p-4 font-sans">
+      
+      <div className="bg-white rounded-[32px] p-10 w-full max-w-[450px] shadow-2xl">
+        
+        {/* Logo Circular */}
+        <div className="flex justify-center mb-6">
+          <div className="w-28 h-28 bg-[#111927] rounded-full flex items-center justify-center shadow-inner overflow-hidden">
+            {/* Usamos tu variable {logo} para que cargue tu imagen de assets */}
+            <img src={logo} alt="Créditos Guadalupe" className="w-20 h-auto object-contain" />
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Encabezado */}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-black text-slate-800 mb-1">Inicio de Sesión</h2>
+          <p className="text-slate-500 text-sm font-medium">Escriba su correo electrónico</p>
+        </div>
 
-          {/* Mensaje de Error en pantalla */}
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          
+          {/* Mensaje de Error */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg text-center">
+            <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm text-center border border-red-200 font-medium">
               {error}
             </div>
           )}
-
+          
+          {/* Correo Electrónico */}
           <div>
-            <label className="block text-gray-300 text-sm font-semibold mb-2" htmlFor="email">
-              Correo Electrónico
+            <label className="block text-slate-600 text-sm font-bold mb-2">
+              Correo Electrónico:
             </label>
             <input
               type="email"
-              id="email"
-              className="w-full px-4 py-3 bg-[#0c1928] text-white border border-[#1e3a5f] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d59d47] focus:border-transparent transition placeholder-gray-600"
-              placeholder="admin@guadalupe.com"
+              required
+              className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm px-4 py-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2f405c] focus:border-transparent transition"
+              placeholder="Ej. jeison_arias@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
           </div>
 
+          {/* Contraseña */}
           <div>
-            <label className="block text-gray-300 text-sm font-semibold mb-2" htmlFor="password">
-              Contraseña
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-slate-600 text-sm font-bold">
+                Contraseña
+              </label>
+              <a href="#" className="text-slate-400 text-xs hover:text-[#2f405c] hover:underline transition">
+                Olvidó su contraseña?
+              </a>
+            </div>
             <input
               type="password"
-              id="password"
-              className="w-full px-4 py-3 bg-[#0c1928] text-white border border-[#1e3a5f] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d59d47] focus:border-transparent transition placeholder-gray-600"
+              required
+              className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-lg tracking-widest px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2f405c] focus:border-transparent transition"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </div>
 
+          {/* Recordar Contraseña */}
+          <div className="flex items-center gap-2 pt-1">
+            <input 
+              type="checkbox" 
+              id="recordar"
+              className="w-4 h-4 rounded border-slate-300 text-[#2f405c] focus:ring-[#2f405c]"
+            />
+            <label htmlFor="recordar" className="text-slate-500 text-sm font-medium cursor-pointer">
+              Recordar Contraseña
+            </label>
+          </div>
+
+          {/* Botón Ingresar */}
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full text-[#0c1928] font-bold py-3 px-4 rounded-lg transition duration-300 shadow-lg mt-4 ${
-              isLoading ? 'bg-[#b3833b] cursor-not-allowed' : 'bg-[#d59d47] hover:bg-[#eeb153]'
+            className={`w-full text-white font-bold py-4 rounded-xl transition shadow-lg mt-4 flex justify-center items-center ${
+              isLoading ? 'bg-[#3e5378] cursor-not-allowed' : 'bg-[#2a364f] hover:bg-[#1a2333]'
             }`}
           >
-            {isLoading ? 'Verificando...' : 'Ingresar al Sistema'}
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+            ) : (
+              "Ingresar al sistema"
+            )}
           </button>
 
         </form>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm">
+          <span className="text-slate-500">No tiene cuenta ? </span>
+          <a href="#" className="text-blue-500 font-bold hover:underline">
+            Crear cuenta
+          </a>
+        </div>
+
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Wallet, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Wallet, TrendingUp, AlertCircle, Navigation } from 'lucide-react'; // <-- AGREGAMOS Navigation AQUÍ
 import api from '../services/api';
 import {
   Chart as ChartJS,
@@ -32,6 +32,7 @@ export default function Dashboard() {
     total_clientes: 0,
     cartera_activa: 0,
     recaudo_hoy: 0,
+    clientes_pendientes_hoy: 0, // <-- NUEVO: Agregamos el campo de pendientes
     grafica_etiquetas: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
     grafica_datos: [0, 0, 0, 0, 0, 0, 0]
   });
@@ -140,8 +141,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Grid de Tarjetas de Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Grid de Tarjetas de Resumen (ACTUALIZADO A 4 COLUMNAS) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 
         {/* Tarjeta 1: Total Clientes */}
         <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
@@ -157,7 +158,7 @@ export default function Dashboard() {
             <h2 className="text-4xl font-bold text-white mb-2">{stats.total_clientes}</h2>
           )}
           <p className="text-[#10b981] text-xs font-semibold flex items-center gap-1">
-            Clientes registrados en el sistema
+            Registrados en el sistema
           </p>
         </div>
 
@@ -175,14 +176,14 @@ export default function Dashboard() {
             <h2 className="text-4xl font-bold text-white mb-2">{formatearDinero(stats.cartera_activa)}</h2>
           )}
           <p className="text-[#ffc107] text-xs font-semibold flex items-center gap-1">
-            Capital en la calle pendiente de cobro
+            Capital pendiente de cobro
           </p>
         </div>
 
         {/* Tarjeta 3: Recaudo Hoy */}
         <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
           <div className="flex justify-between items-start mb-4">
-            <h3 className="text-gray-400 font-medium">Recaudo de Hoy</h3>
+            <h3 className="text-gray-400 font-medium">Recaudo Hoy</h3>
             <div className="p-2 bg-[#10b981]/10 rounded-lg text-[#10b981]">
               <TrendingUp size={20} />
             </div>
@@ -193,7 +194,25 @@ export default function Dashboard() {
             <h2 className="text-4xl font-bold text-white mb-2">{formatearDinero(stats.recaudo_hoy)}</h2>
           )}
           <p className="text-[#10b981] text-xs font-semibold flex items-center gap-1">
-            Dinero ingresado en caja hoy
+            Dinero ingresado en caja
+          </p>
+        </div>
+
+        {/* NUEVA TARJETA 4: Pendientes Hoy */}
+        <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-gray-400 font-medium">Pendientes Hoy</h3>
+            <div className="p-2 bg-amber-500/10 rounded-lg text-[#ffc107]">
+              <Navigation size={20} />
+            </div>
+          </div>
+          {isLoading ? (
+            <div className="h-10 w-24 bg-white/10 animate-pulse rounded mb-2"></div>
+          ) : (
+            <h2 className="text-4xl font-bold text-white mb-2">{stats.clientes_pendientes_hoy}</h2>
+          )}
+          <p className="text-[#ffc107] text-xs font-semibold flex items-center gap-1">
+            Visitas asignadas para hoy
           </p>
         </div>
 

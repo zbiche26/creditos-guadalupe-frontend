@@ -3,7 +3,6 @@ import { MapPin, Phone, Navigation, ArrowRight, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
-// Definimos la estructura de los datos que nos envía el nuevo endpoint
 interface Visita {
   prestamo_id: string;
   cliente_id: string;
@@ -11,6 +10,7 @@ interface Visita {
   direccion: string;
   barrio: string;
   telefono: string;
+  modalidad: string;
   cuota_diaria: number;
   saldo_restante: number;
 }
@@ -19,7 +19,6 @@ export default function EnrutarClientes() {
   const [ruta, setRuta] = useState<Visita[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,15 +27,14 @@ export default function EnrutarClientes() {
       setError('');
       try {
         const respuesta = await api.get('/rutas/dia');
-        // Aseguramos que tomamos la propiedad 'datos' que armamos en Python
-        if (respuesta.data && respuesta.data.datos) {
+        if (respuesta.data?.datos) {
           setRuta(respuesta.data.datos);
         } else {
           setRuta([]);
         }
       } catch (err) {
         console.error("Error al cargar la ruta:", err);
-        setError("No se pudo cargar la ruta del día. Revisa la conexión.");
+        setError("No se pudo cargar la ruta del día.");
       } finally {
         setIsLoading(false);
       }
@@ -45,7 +43,6 @@ export default function EnrutarClientes() {
     cargarRuta();
   }, []);
 
-  // Función para formatear dinero fácil de leer
   const formatearDinero = (monto: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -56,26 +53,22 @@ export default function EnrutarClientes() {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto font-sans pb-10">
-
-      {/* Encabezado */}
       <div className="flex justify-between items-center mb-6 mt-2">
         <div>
           <h2 className="text-[26px] font-bold text-white tracking-wide">Ruta del Día</h2>
           <p className="text-gray-400 text-sm mt-1">
-            {ruta.length} clientes pendientes de visita hoy.
+            {ruta.length} clientes pendientes de cobro hoy.
           </p>
         </div>
-
         <button
           onClick={() => window.location.reload()}
-          className="bg-gray-800 text-gray-300 p-3 rounded-full hover:bg-gray-700 transition shadow-lg"
+          className="bg-gray-800 text-gray-300 p-3 rounded-full hover:bg-gray-700 transition"
           title="Actualizar Ruta"
         >
           <Navigation size={20} className="text-[#ffc107]" />
         </button>
       </div>
 
-      {/* Estados de Carga y Error */}
       {isLoading && (
         <div className="flex justify-center items-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ffc107]"></div>
@@ -90,28 +83,26 @@ export default function EnrutarClientes() {
 
       {!isLoading && !error && ruta.length === 0 && (
         <div className="bg-[#242e42] rounded-xl p-10 text-center border border-gray-700/20 shadow-md">
-          <Navigation size={48} className="mx-auto text-gray-500 mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">¡Día Libre!</h3>
-          <p className="text-gray-400">No hay clientes con créditos activos en la ruta de hoy.</p>
+          <Navigation size={48} className="mx-auto text-[#ffc107] mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">¡Ruta Completa!</h3>
+          <p className="text-gray-400">No hay más cobros pendientes para el día de hoy.</p>
         </div>
       )}
 
-      {/* Lista de Tarjetas (Grid para PC, Lista para Móvil) */}
       {!isLoading && !error && ruta.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {ruta.map((visita, index) => (
             <div
               key={visita.prestamo_id}
-              className="bg-[#242e42] rounded-xl overflow-hidden border border-gray-700/30 shadow-lg flex flex-col hover:border-gray-500/50 transition-colors"
+              className="bg-[#242e42] rounded-xl overflow-hidden border border-gray-700/30 shadow-lg flex flex-col"
             >
-              {/* Cabecera de la Tarjeta */}
               <div className="bg-[#1e2738] p-4 flex justify-between items-start border-b border-gray-700/50">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-[#ffc107] font-bold text-lg shrink-0">
                     {index + 1}
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-[15px] leading-tight truncate max-w-[200px] uppercase">
+                    <h3 className="text-white font-bold text-[15px] leading-tight truncate max-w-[180px] uppercase">
                       {visita.nombre_completo}
                     </h3>
                     <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-1">
@@ -119,9 +110,19 @@ export default function EnrutarClientes() {
                     </div>
                   </div>
                 </div>
+
+                {/* Badge de Modalidad */}
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md tracking-wider border ${
+                  visita.modalidad === 'DIARIO'
+                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                    : visita.modalidad === 'SEMANAL'
+                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                    : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                }`}>
+                  {visita.modalidad}
+                </span>
               </div>
 
-              {/* Cuerpo de la Tarjeta */}
               <div className="p-5 flex-grow flex flex-col gap-3">
                 <div className="flex items-start gap-2.5">
                   <MapPin size={16} className="text-[#ffc107] mt-0.5 shrink-0" />
@@ -147,7 +148,6 @@ export default function EnrutarClientes() {
                 </div>
               </div>
 
-              {/* Botón de Acción CORREGIDO */}
               <button
                 onClick={() => navigate(`/clientes/${visita.cliente_id}/creditos`, {
                   state: {
@@ -168,7 +168,6 @@ export default function EnrutarClientes() {
           ))}
         </div>
       )}
-
     </div>
   );
 }
