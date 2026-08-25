@@ -5,7 +5,7 @@ import Clientes from './pages/Clientes';
 import Layout from './components/Layout';
 import ClientesNuevos from './pages/ClientesNuevos';
 import CreditosCliente from './pages/CreditosCliente';
-import EnrutarClientes from './pages/EnrutarClientes'; // <-- 1. IMPORTAMOS LA NUEVA PANTALLA
+import EnrutarClientes from './pages/EnrutarClientes';
 
 function App() {
   return (
@@ -20,8 +20,8 @@ function App() {
           <Route path="/clientes/nuevos" element={<ClientesNuevos />} />
           <Route path="/clientes/:id/creditos" element={<CreditosCliente />} />
 
-          {/* <-- 2. NUEVA RUTA PARA LA RUTA DE COBROS --> */}
-          <Route path="/enrutamiento" element={<EnrutarClientes />} />
+          {/* <-- SOLUCIÓN: Cambiamos /enrutamiento por /enrutar para que coincida con el menú --> */}
+          <Route path="/enrutar" element={<EnrutarClientes />} />
         </Route>
 
         {/* Ruta comodín: Si la URL no existe, expulsa al login */}

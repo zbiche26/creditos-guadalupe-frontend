@@ -1,35 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight } from 'lucide-react';
+// Agregamos el icono LogOut a la lista de importaciones
+import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Estado para expandir o contraer el submenú de clientes
   const [clientesOpen, setClientesOpen] = useState(true);
+  const [nombreUsuario, setNombreUsuario] = useState('Administrador');
+
+  // NUEVO: Estado para controlar si el menú del perfil está abierto o cerrado
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const emailGuardado = localStorage.getItem('usuario_email');
+    if (emailGuardado) {
+      const nombre = emailGuardado.split('@')[0];
+      setNombreUsuario(nombre.charAt(0).toUpperCase() + nombre.slice(1));
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('usuario_email');
     navigate('/login');
   };
 
   const isClientesActive = location.pathname.includes('/clientes');
 
   return (
-    // Fondo principal ajustado a un azul/gris oscuro para el contraste del dashboard
     <div className="flex h-screen bg-[#1A2235] text-guadalupe-blanco overflow-hidden font-sans">
 
-      {/* Barra Lateral Izquierda (Fondo corporativo Azul) */}
+      {/* Barra Lateral Izquierda */}
       <aside className="w-[260px] bg-guadalupe-azul flex flex-col z-20 shadow-2xl overflow-y-auto">
-
         <div className="pt-8 pb-8 px-6 text-center flex justify-center">
           <img src={logo} alt="Logo" className="w-36 h-auto object-contain" />
         </div>
 
         <nav className="flex-1 flex flex-col gap-1.5 py-2">
-
           {/* Panel */}
           <div>
             <Link
@@ -62,7 +72,6 @@ export default function Layout() {
               {clientesOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
 
-            {/* Submenús de Clientes */}
             {clientesOpen && (
               <ul className="pl-14 pr-4 py-2 space-y-1 border-l border-white/10 ml-6 mt-1">
                 <li>
@@ -99,7 +108,7 @@ export default function Layout() {
             )}
           </div>
 
-          {/* Resto de Opciones del Menú iteradas dinámicamente */}
+          {/* Resto de Opciones del Menú */}
           {[
             { path: '/ventas', label: 'Ventas', icon: <TrendingUp size={20} /> },
             { path: '/gastos', label: 'Gastos', icon: <DollarSign size={20} /> },
@@ -125,10 +134,9 @@ export default function Layout() {
         </nav>
       </aside>
 
-      {/* Contenedor Principal (Header y Outlet) */}
+      {/* Contenedor Principal */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
 
-        {/* === AQUÍ ESTÁ EL CAMBIO FINAL: bg-guadalupe-azul === */}
         <header className="h-[76px] flex items-center justify-between px-8 bg-guadalupe-azul border-b border-white/5 shadow-sm z-10">
           <div className="relative w-[360px]">
             <Search className="absolute left-4 top-2.5 text-guadalupe-blanco/40" size={18} />
@@ -139,7 +147,7 @@ export default function Layout() {
             />
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 relative">
             <div className="relative cursor-pointer text-guadalupe-blanco/70 hover:text-white transition">
               <Bell size={22} fill="currentColor" />
               <span className="absolute -top-1 -right-1 bg-[#ef4444] text-[10px] font-bold text-white rounded-full h-[18px] w-[18px] flex items-center justify-center border-2 border-guadalupe-azul">6</span>
@@ -150,19 +158,43 @@ export default function Layout() {
               <span className="text-sm font-semibold text-guadalupe-blanco flex items-center gap-1">Español <ChevronDown size={14} /></span>
             </div>
 
-            <div className="flex items-center gap-3 cursor-pointer group" onClick={handleLogout}>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-white/20 bg-orange-100">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=ffdfbf" alt="Avatar" className="w-full h-full object-cover" />
+            {/* SECCIÓN DEL PERFIL CORREGIDA */}
+            <div className="relative">
+              <div
+                className="flex items-center gap-3 cursor-pointer group px-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
+                onClick={() => setProfileOpen(!profileOpen)}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-white/20 bg-orange-100">
+                  <img
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreUsuario}&backgroundColor=ffdfbf`}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="text-left hidden sm:block">
+                  <p className="text-sm font-bold leading-tight text-white">{nombreUsuario}</p>
+                  <p className="text-[11px] text-guadalupe-blanco/70">Admin</p>
+                </div>
+                <ChevronDown size={14} className="text-gray-400 group-hover:text-white transition-colors" />
               </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-sm font-bold leading-tight text-white">Juan López</p>
-                <p className="text-[11px] text-guadalupe-blanco/70">Admin</p>
-              </div>
+
+              {/* Menú Desplegable que aparece al hacer clic */}
+              {profileOpen && (
+                <div className="absolute right-0 mt-3 w-48 bg-[#242e42] rounded-xl shadow-xl py-2 border border-gray-700 z-50">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-2 transition-colors"
+                  >
+                    <LogOut size={16} /> Cerrar Sesión
+                  </button>
+                </div>
+              )}
             </div>
+
           </div>
         </header>
 
-        {/* Área dinámica donde cargan las vistas (como el Dashboard) */}
+        {/* Área dinámica */}
         <main className="flex-1 overflow-y-auto px-8 py-6">
           <Outlet />
         </main>

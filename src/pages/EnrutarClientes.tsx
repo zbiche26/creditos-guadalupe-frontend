@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Phone, User, Navigation, ArrowRight, Wallet } from 'lucide-react';
+import { MapPin, Phone, Navigation, ArrowRight, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -147,10 +147,19 @@ export default function EnrutarClientes() {
                 </div>
               </div>
 
-              {/* Botón de Acción */}
+              {/* Botón de Acción CORREGIDO */}
               <button
-                // Navegamos al perfil del cliente para cobrarle
-                onClick={() => navigate(`/clientes/${visita.cliente_id}/creditos`)}
+                onClick={() => navigate(`/clientes/${visita.cliente_id}/creditos`, {
+                  state: {
+                    cliente: {
+                      id: visita.cliente_id,
+                      nombre_completo: visita.nombre_completo,
+                      direccion: visita.direccion,
+                      telefono: visita.telefono,
+                      barrio: visita.barrio
+                    }
+                  }
+                })}
                 className="bg-[#ffc107]/10 hover:bg-[#ffc107]/20 text-[#ffc107] w-full py-3.5 text-sm font-bold flex items-center justify-center gap-2 transition-colors border-t border-[#ffc107]/20"
               >
                 <Wallet size={16} /> Ir a Cobrar <ArrowRight size={16} />

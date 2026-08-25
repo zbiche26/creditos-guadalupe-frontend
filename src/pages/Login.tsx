@@ -27,6 +27,7 @@ export default function Login() {
       // 2. ¡Atrapamos el token real que envía tu backend y lo guardamos!
       if (response.data.token_acceso) {
         localStorage.setItem('token', response.data.token_acceso);
+        localStorage.setItem('usuario_email', email); // <-- AÑADE ESTA LÍNEA
         navigate('/dashboard');
       } else {
         // Por si el backend responde un 200 pero nos dice que hay un error lógico
