@@ -23,9 +23,14 @@ export default function Login() {
       });
 
       if (response.data.token_acceso) {
-        // Guardamos el token y el email exactamente como lo tenías
+        // Guardamos el token y el email
         localStorage.setItem('token', response.data.token_acceso);
         localStorage.setItem('usuario_email', email); 
+        
+        // NUEVO: Guardamos los IDs reales del usuario y su empresa
+        localStorage.setItem('usuario_id', response.data.usuario.id);
+        localStorage.setItem('empresa_id', response.data.usuario.empresa_id);
+        
         navigate('/dashboard');
       } else {
         setError(response.data.detalle || 'Error al iniciar sesión');

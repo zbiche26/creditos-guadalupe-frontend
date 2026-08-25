@@ -72,19 +72,29 @@ export default function CreditosCliente() {
     e.preventDefault();
     if (!prestamosActivos.length) return;
 
+    // 1. Obtenemos los IDs reales del Login
+    const empresaIdReal = localStorage.getItem('empresa_id');
+    const cobradorIdReal = localStorage.getItem('usuario_id');
+
+    // Validación de seguridad
+    if (!empresaIdReal || !cobradorIdReal) {
+      alert("Error: No se encontró la sesión activa. Por favor cierra sesión y vuelve a entrar.");
+      return;
+    }
+
     try {
       const payloadAbono = {
-        empresa_id: "6608657b-4a69-408c-a61f-99e1acbfa636",
+        empresa_id: empresaIdReal,
         prestamo_id: prestamosActivos[0].id,
-        cobrador_id: "ab1cc484-0d3c-49a3-9532-42dd17a49906", // <-- Tu ID largo copiado aquí
+        cobrador_id: cobradorIdReal,
         monto_pagado: parseFloat(montoAbono)
       };
 
       await api.post('/abonos/', payloadAbono);
 
       alert("¡Pago registrado con éxito!");
-      setMontoAbono(''); // Limpiamos el input
-      cargarSaldo(); // Refrescamos el saldo al instante sin recargar la página
+      setMontoAbono(''); 
+      cargarSaldo(); 
 
     } catch (err: any) {
       console.error("Error al procesar pago:", err);
@@ -102,11 +112,19 @@ export default function CreditosCliente() {
   const handleSubmitCredito = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // 1. Obtenemos el ID real de la empresa desde el Login
+    const empresaIdReal = localStorage.getItem('empresa_id');
+
+    if (!empresaIdReal) {
+      alert("Error: No se encontró la sesión activa. Por favor cierra sesión y vuelve a entrar.");
+      return;
+    }
+
     try {
       const payloadPrestamo = {
-        empresa_id: "6608657b-4a69-408c-a61f-99e1acbfa636",
+        empresa_id: empresaIdReal,
         cliente_id: cliente.id,
-        ruta_id: "1548fd5c-997a-4a96-ade1-3ca4ae8e148b",
+        ruta_id: "00000000-0000-0000-0000-000000000000", // Ruta por defecto temporal
         monto_prestado: parseFloat(prestamo.monto_prestado),
         tasa_interes: parseFloat(prestamo.tasa_interes),
         monto_total_pagar: calcularTotal(),
@@ -117,8 +135,8 @@ export default function CreditosCliente() {
       await api.post('/prestamos/', payloadPrestamo);
 
       alert("¡Crédito adicional registrado con éxito!");
-      setPrestamo({ ...prestamo, monto_prestado: '', valor_cuota: '' }); // Limpiamos form
-      cargarSaldo(); // Refrescamos saldo total
+      setPrestamo({ ...prestamo, monto_prestado: '', valor_cuota: '' }); 
+      cargarSaldo(); 
 
     } catch (err: any) {
       console.error("Error al registrar crédito:", err);
