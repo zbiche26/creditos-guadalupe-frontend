@@ -6,6 +6,8 @@ import Layout from './components/Layout';
 import ClientesNuevos from './pages/ClientesNuevos';
 import CreditosCliente from './pages/CreditosCliente';
 import EnrutarClientes from './pages/EnrutarClientes';
+import Gastos from './pages/Gastos';
+import TotalizarVentas from './pages/TotalizarVentas'; // <--- 1. IMPORTAMOS LA PÁGINA DE LIQUIDACIÓN
 
 function App() {
   return (
@@ -19,9 +21,11 @@ function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/clientes/nuevos" element={<ClientesNuevos />} />
           <Route path="/clientes/:id/creditos" element={<CreditosCliente />} />
-
-          {/* <-- SOLUCIÓN: Cambiamos /enrutamiento por /enrutar para que coincida con el menú --> */}
           <Route path="/enrutar" element={<EnrutarClientes />} />
+          <Route path="/gastos" element={<Gastos />} />
+          
+          {/* <--- 2. AGREGAMOS LA RUTA DE TOTALIZAR VENTAS AQUÍ DENTRO ---> */}
+          <Route path="/totalizar-ventas" element={<TotalizarVentas />} />
         </Route>
 
         {/* Ruta comodín: Si la URL no existe, expulsa al login */}

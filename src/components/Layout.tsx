@@ -112,7 +112,7 @@ export default function Layout() {
           {[
             { path: '/ventas', label: 'Ventas', icon: <TrendingUp size={20} /> },
             { path: '/gastos', label: 'Gastos', icon: <DollarSign size={20} /> },
-            { path: '/totalizar', label: 'Totalizar Ventas', icon: <Coins size={20} /> },
+            { path: '/totalizar-ventas', label: 'Totalizar Ventas', icon: <Coins size={20} /> },
             { path: '/enrutar', label: 'Enrutar Clientes', icon: <Map size={20} /> },
             { path: '/calendario', label: 'Calendario', icon: <Calendar size={20} /> },
             { path: '/configuracion', label: 'Configuración', icon: <Settings size={20} /> },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Wallet, TrendingUp, AlertCircle, Navigation } from 'lucide-react'; // <-- AGREGAMOS Navigation AQUÍ
+import { Users, Wallet, TrendingUp, AlertCircle, Navigation, TrendingDown, DollarSign } from 'lucide-react';
 import api from '../services/api';
 import {
   Chart as ChartJS,
@@ -14,7 +14,6 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-// Registramos los elementos que usaremos para dibujar
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -27,12 +26,12 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-  // 1. Estado actualizado para recibir los arreglos de la gráfica desde Python
   const [stats, setStats] = useState({
     total_clientes: 0,
     cartera_activa: 0,
     recaudo_hoy: 0,
-    clientes_pendientes_hoy: 0, // <-- NUEVO: Agregamos el campo de pendientes
+    gastos_hoy: 0, // <-- Nuevo estado
+    clientes_pendientes_hoy: 0,
     grafica_etiquetas: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
     grafica_datos: [0, 0, 0, 0, 0, 0, 0]
   });
@@ -64,7 +63,6 @@ export default function Dashboard() {
     }).format(monto);
   };
 
-  // 2. Conectamos los datos REALES provenientes del backend
   const chartData = {
     labels: stats.grafica_etiquetas,
     datasets: [
@@ -141,84 +139,92 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Grid de Tarjetas de Resumen (ACTUALIZADO A 4 COLUMNAS) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Grid de Tarjetas de Resumen (5 Columnas para acomodar Clientes, Cartera, Recaudo, Gastos y Pendientes) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
 
         {/* Tarjeta 1: Total Clientes */}
-        <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-gray-400 font-medium">Total Clientes</h3>
+        <div className="bg-[#242e42] rounded-2xl p-5 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="text-gray-400 font-medium text-sm">Total Clientes</h3>
             <div className="p-2 bg-white/5 rounded-lg text-gray-300">
-              <Users size={20} />
+              <Users size={18} />
             </div>
           </div>
           {isLoading ? (
-            <div className="h-10 w-24 bg-white/10 animate-pulse rounded mb-2"></div>
+            <div className="h-8 w-20 bg-white/10 animate-pulse rounded mb-2"></div>
           ) : (
-            <h2 className="text-4xl font-bold text-white mb-2">{stats.total_clientes}</h2>
+            <h2 className="text-3xl font-bold text-white mb-1">{stats.total_clientes}</h2>
           )}
-          <p className="text-[#10b981] text-xs font-semibold flex items-center gap-1">
-            Registrados en el sistema
-          </p>
+          <p className="text-[#10b981] text-[11px] font-semibold">Registrados</p>
         </div>
 
         {/* Tarjeta 2: Cartera Activa */}
-        <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-gray-400 font-medium">Cartera Activa</h3>
+        <div className="bg-[#242e42] rounded-2xl p-5 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="text-gray-400 font-medium text-sm">Cartera Activa</h3>
             <div className="p-2 bg-white/5 rounded-lg text-gray-300">
-              <Wallet size={20} />
+              <Wallet size={18} />
             </div>
           </div>
           {isLoading ? (
-            <div className="h-10 w-32 bg-white/10 animate-pulse rounded mb-2"></div>
+            <div className="h-8 w-24 bg-white/10 animate-pulse rounded mb-2"></div>
           ) : (
-            <h2 className="text-4xl font-bold text-white mb-2">{formatearDinero(stats.cartera_activa)}</h2>
+            <h2 className="text-2xl font-bold text-white mb-1">{formatearDinero(stats.cartera_activa)}</h2>
           )}
-          <p className="text-[#ffc107] text-xs font-semibold flex items-center gap-1">
-            Capital pendiente de cobro
-          </p>
+          <p className="text-[#ffc107] text-[11px] font-semibold">Capital en la calle</p>
         </div>
 
         {/* Tarjeta 3: Recaudo Hoy */}
-        <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-gray-400 font-medium">Recaudo Hoy</h3>
+        <div className="bg-[#242e42] rounded-2xl p-5 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="text-gray-400 font-medium text-sm">Recaudo Hoy</h3>
             <div className="p-2 bg-[#10b981]/10 rounded-lg text-[#10b981]">
-              <TrendingUp size={20} />
+              <TrendingUp size={18} />
             </div>
           </div>
           {isLoading ? (
-            <div className="h-10 w-32 bg-white/10 animate-pulse rounded mb-2"></div>
+            <div className="h-8 w-24 bg-white/10 animate-pulse rounded mb-2"></div>
           ) : (
-            <h2 className="text-4xl font-bold text-white mb-2">{formatearDinero(stats.recaudo_hoy)}</h2>
+            <h2 className="text-2xl font-bold text-white mb-1">{formatearDinero(stats.recaudo_hoy)}</h2>
           )}
-          <p className="text-[#10b981] text-xs font-semibold flex items-center gap-1">
-            Dinero ingresado en caja
-          </p>
+          <p className="text-[#10b981] text-[11px] font-semibold">Ingresos en caja</p>
         </div>
 
-        {/* NUEVA TARJETA 4: Pendientes Hoy */}
-        <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-gray-400 font-medium">Pendientes Hoy</h3>
-            <div className="p-2 bg-amber-500/10 rounded-lg text-[#ffc107]">
-              <Navigation size={20} />
+        {/* Tarjeta 4: Gastos de Hoy */}
+        <div className="bg-[#242e42] rounded-2xl p-5 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="text-gray-400 font-medium text-sm">Gastos de Hoy</h3>
+            <div className="p-2 bg-red-500/10 rounded-lg text-red-400">
+              <TrendingDown size={18} />
             </div>
           </div>
           {isLoading ? (
-            <div className="h-10 w-24 bg-white/10 animate-pulse rounded mb-2"></div>
+            <div className="h-8 w-24 bg-white/10 animate-pulse rounded mb-2"></div>
           ) : (
-            <h2 className="text-4xl font-bold text-white mb-2">{stats.clientes_pendientes_hoy}</h2>
+            <h2 className="text-2xl font-bold text-white mb-1">{formatearDinero(stats.gastos_hoy)}</h2>
           )}
-          <p className="text-[#ffc107] text-xs font-semibold flex items-center gap-1">
-            Visitas asignadas para hoy
-          </p>
+          <p className="text-red-400 text-[11px] font-semibold">Salidas de dinero</p>
+        </div>
+
+        {/* Tarjeta 5: Pendientes Hoy */}
+        <div className="bg-[#242e42] rounded-2xl p-5 shadow-lg border border-gray-700/30 relative overflow-hidden hover:border-gray-500/50 transition-colors">
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="text-gray-400 font-medium text-sm">Pendientes Hoy</h3>
+            <div className="p-2 bg-amber-500/10 rounded-lg text-[#ffc107]">
+              <Navigation size={18} />
+            </div>
+          </div>
+          {isLoading ? (
+            <div className="h-8 w-20 bg-white/10 animate-pulse rounded mb-2"></div>
+          ) : (
+            <h2 className="text-3xl font-bold text-white mb-1">{stats.clientes_pendientes_hoy}</h2>
+          )}
+          <p className="text-[#ffc107] text-[11px] font-semibold">Visitas asignadas</p>
         </div>
 
       </div>
 
-      {/* Gráfica de Ventas conectada */}
+      {/* Gráfica de Rendimiento Semanal */}
       <div className="bg-[#242e42] rounded-2xl p-6 shadow-lg border border-gray-700/30 h-[380px] flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -227,7 +233,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Contenedor relativo para que Chart.js se ajuste perfectamente */}
         <div className="flex-1 w-full relative">
           {isLoading ? (
             <div className="w-full h-full bg-white/5 animate-pulse rounded-xl"></div>
