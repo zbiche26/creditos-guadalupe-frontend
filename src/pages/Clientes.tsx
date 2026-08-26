@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Mail, Map } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
-// 1. Añadimos los nuevos campos que el backend enviará en el futuro
 interface Cliente {
   id?: string;
   ruta_id: string;
@@ -21,8 +20,8 @@ interface Cliente {
   fiador_barrio?: string;
   fiador_contacto?: string;
   created_at?: string;
-  estado_credito?: string; // <-- NUEVO: Para recibir el color real
-  dias_mora?: number;      // <-- NUEVO: Para saber cuántos días debe
+  estado_credito?: string;
+  dias_mora?: number;
 }
 
 export default function Clientes() {
@@ -64,7 +63,6 @@ export default function Clientes() {
     return `${fecha.getDate()}/${fecha.getMonth() + 1}/${fecha.getFullYear()}`;
   };
 
-  // 2. LA FUNCIÓN ESTRELLA: Genera los colores visuales
   const renderEstadoBadge = (estado_credito: string, diasMora: number = 0) => {
     switch (estado_credito) {
       case 'AL_DIA':
@@ -142,12 +140,13 @@ export default function Clientes() {
                 </tr>
               ) : (
                 clientes.map((cliente, index) => {
-
-                  // 👇 3. SIMULACIÓN VISUAL (Mientras conectamos el backend) 👇
-                  // Esto asignará un color diferente a cada cliente basado en su posición en la lista.
-                  // Si el backend envía el dato real (cliente.estado_credito), usará el real.
                   const estadoMostrar = cliente.estado_credito || 'SIN_CREDITO';
                   const diasMoraMostrar = cliente.dias_mora || 0;
+
+                  // Lógica limpia para mostrar el número de crédito o asignar un consecutivo si está vacío
+                  const mostrarCredito = cliente.numero_credito && cliente.numero_credito !== 'N/A' && cliente.numero_credito !== '0' && cliente.numero_credito !== 'SIN CRÉDITO'
+                    ? cliente.numero_credito
+                    : (estadoMostrar !== 'SIN_CREDITO' ? `CRD-${(index + 1).toString().padStart(3, '0')}` : 'Sin Crédito');
 
                   return (
                     <tr key={index} className="hover:bg-[#2a354a] transition border-b border-gray-700/20 last:border-0">
@@ -155,7 +154,7 @@ export default function Clientes() {
                         {(index + 1).toString().padStart(2, '0')}
                       </td>
                       <td className="px-5 py-4 text-center text-[#ffc107] font-semibold">
-                        {cliente.numero_credito || 'N/A'}
+                        {mostrarCredito}
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2 font-medium text-white">
@@ -186,7 +185,6 @@ export default function Clientes() {
                         </div>
                       </td>
 
-                      {/* CELDA DE ESTADO CON LOS COLORES */}
                       <td className="px-5 py-4 text-center">
                         {renderEstadoBadge(estadoMostrar, diasMoraMostrar)}
                       </td>
@@ -212,9 +210,7 @@ export default function Clientes() {
       {/* MODAL DE PERFIL DEL CLIENTE */}
       {clienteSeleccionado && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-
           <div className="bg-[#0f1522] rounded-2xl w-full max-w-5xl relative shadow-2xl p-6 border border-gray-700/50">
-            {/* Botón de cerrar */}
             <button
               onClick={() => setClienteSeleccionado(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-white bg-gray-800 p-1.5 rounded-full transition"
@@ -227,8 +223,6 @@ export default function Clientes() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-
-              {/* TARJETA DATOS PERSONALES */}
               <div className="flex flex-col shadow-lg rounded-xl overflow-hidden border border-gray-600/30">
                 <div className="bg-gray-300 py-2.5 text-center">
                   <h3 className="text-[#111927] font-black text-[15px] uppercase tracking-widest">
@@ -308,12 +302,10 @@ export default function Clientes() {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

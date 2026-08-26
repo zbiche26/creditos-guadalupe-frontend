@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 interface Visita {
-  prestamo_id: string;
   cliente_id: string;
   nombre_completo: string;
   direccion: string;
@@ -13,6 +12,7 @@ interface Visita {
   modalidad: string;
   cuota_diaria: number;
   saldo_restante: number;
+  cantidad_tarjetas?: number;
 }
 
 export default function EnrutarClientes() {
@@ -93,7 +93,7 @@ export default function EnrutarClientes() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {ruta.map((visita, index) => (
             <div
-              key={visita.prestamo_id}
+              key={visita.cliente_id}
               className="bg-[#242e42] rounded-xl overflow-hidden border border-gray-700/30 shadow-lg flex flex-col"
             >
               <div className="bg-[#1e2738] p-4 flex justify-between items-start border-b border-gray-700/50">
@@ -111,16 +111,17 @@ export default function EnrutarClientes() {
                   </div>
                 </div>
 
-                {/* Badge de Modalidad */}
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md tracking-wider border ${
-                  visita.modalidad === 'DIARIO'
-                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                    : visita.modalidad === 'SEMANAL'
-                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                    : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-                }`}>
-                  {visita.modalidad}
-                </span>
+                {/* Badge de Modalidad o Tarjetas múltiples */}
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-md tracking-wider border bg-blue-500/20 text-blue-400 border-blue-500/30">
+                    {visita.modalidad}
+                  </span>
+                  {visita.cantidad_tarjetas && visita.cantidad_tarjetas > 1 && (
+                    <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold border border-amber-500/30">
+                      {visita.cantidad_tarjetas} Tarjetas
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="p-5 flex-grow flex flex-col gap-3">
@@ -134,7 +135,7 @@ export default function EnrutarClientes() {
 
                 <div className="bg-[#1a2235] rounded-lg p-3 mt-2 grid grid-cols-2 gap-2 border border-gray-700/30">
                   <div>
-                    <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Cuota de Hoy</p>
+                    <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Total Cuota Hoy</p>
                     <p className="text-green-400 font-bold text-sm">
                       {formatearDinero(visita.cuota_diaria)}
                     </p>
