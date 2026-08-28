@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight, LogOut, AlertCircle, CreditCard } from 'lucide-react';
+import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight, LogOut, AlertCircle, CreditCard, Menu, X } from 'lucide-react';
 import logo from '../assets/logo.png';
 import api from '../services/api';
 
@@ -8,9 +8,11 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Estados de UI
   const [clientesOpen, setClientesOpen] = useState(true);
   const [nombreUsuario, setNombreUsuario] = useState('Administrador');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false); // NUEVO: Estado del menú móvil
 
   // Estados para el Buscador Global
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
@@ -71,11 +73,32 @@ export default function Layout() {
 
   const isClientesActive = location.pathname.includes('/clientes') || location.pathname.includes('/creditos');
 
-  return (
-    <div className="flex h-screen bg-[#1A2235] text-guadalupe-blanco overflow-hidden font-sans">
+  // Función para cerrar el menú en móviles al hacer clic en un enlace
+  const cerrarMenuMovil = () => setMenuAbierto(false);
 
-      {/* Barra Lateral Izquierda */}
-      <aside className="w-[260px] bg-guadalupe-azul flex flex-col z-20 shadow-2xl overflow-y-auto">
+  return (
+    <div className="flex h-screen bg-[#1A2235] text-guadalupe-blanco overflow-hidden font-sans relative">
+
+      {/* NUEVO: Capa oscura para el menú móvil */}
+      {menuAbierto && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden transition-opacity"
+          onClick={cerrarMenuMovil}
+        />
+      )}
+
+      {/* Barra Lateral Izquierda (Adaptable) */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-[260px] bg-guadalupe-azul flex flex-col shadow-2xl overflow-y-auto
+        transform transition-transform duration-300 ease-in-out
+        md:relative md:translate-x-0
+        ${menuAbierto ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        {/* Botón de cerrar en móvil */}
+        <div className="md:hidden absolute top-4 right-4 text-white/50 hover:text-white" onClick={cerrarMenuMovil}>
+          <X size={24} />
+        </div>
+
         <div className="pt-8 pb-8 px-6 text-center flex justify-center">
           <img src={logo} alt="Logo" className="w-36 h-auto object-contain" />
         </div>
@@ -85,6 +108,7 @@ export default function Layout() {
           <div>
             <Link
               to="/dashboard"
+              onClick={cerrarMenuMovil}
               className={`flex items-center gap-4 py-3.5 pl-8 pr-4 w-11/12 rounded-r-2xl transition-all ${
                 location.pathname.includes('/dashboard')
                   ? 'bg-guadalupe-amarillo text-guadalupe-azul font-bold shadow-lg'
@@ -118,6 +142,7 @@ export default function Layout() {
                 <li>
                   <Link
                     to="/clientes"
+                    onClick={cerrarMenuMovil}
                     className={`block py-2 px-3 rounded-lg text-sm transition ${
                       location.pathname === '/clientes' ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
                     }`}
@@ -128,6 +153,7 @@ export default function Layout() {
                 <li>
                   <Link
                     to="/clientes/nuevos"
+                    onClick={cerrarMenuMovil}
                     className={`block py-2 px-3 rounded-lg text-sm transition ${
                       location.pathname.includes('/nuevos') ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
                     }`}
@@ -138,6 +164,7 @@ export default function Layout() {
                 <li>
                   <Link
                     to="/clientes/actualizar"
+                    onClick={cerrarMenuMovil}
                     className={`block py-2 px-3 rounded-lg text-sm transition ${
                       location.pathname.includes('/actualizar') ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
                     }`}
@@ -148,6 +175,7 @@ export default function Layout() {
                 <li>
                   <Link
                     to="/clientes/mora"
+                    onClick={cerrarMenuMovil}
                     className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition ${
                       location.pathname.includes('/mora') ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
                     }`}
@@ -156,10 +184,10 @@ export default function Layout() {
                     <span>Clientes en Mora</span>
                   </Link>
                 </li>
-                {/* NUEVO MÓDULO: Historial Global de Créditos */}
                 <li>
                   <Link
                     to="/creditos/historial"
+                    onClick={cerrarMenuMovil}
                     className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition ${
                       location.pathname.includes('/creditos/historial') ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
                     }`}
@@ -184,6 +212,7 @@ export default function Layout() {
             <div key={item.path}>
               <Link
                 to={item.path}
+                onClick={cerrarMenuMovil}
                 className={`flex items-center gap-4 py-3.5 pl-8 pr-4 w-11/12 rounded-r-2xl transition-all ${
                   location.pathname.includes(item.path)
                     ? 'bg-guadalupe-amarillo text-guadalupe-azul font-bold shadow-lg'
@@ -199,51 +228,61 @@ export default function Layout() {
       </aside>
 
       {/* Contenedor Principal */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative w-full">
 
-        <header className="h-[76px] flex items-center justify-between px-8 bg-guadalupe-azul border-b border-white/5 shadow-sm z-30">
+        <header className="h-[76px] flex items-center justify-between px-4 md:px-8 bg-guadalupe-azul border-b border-white/5 shadow-sm z-30">
           
-          {/* 1. BUSCADOR GLOBAL FUNCIONAL */}
-          <div className="relative w-[360px]">
-            <Search className="absolute left-4 top-2.5 text-guadalupe-blanco/40" size={18} />
-            <input
-              type="text"
-              placeholder="Buscar cliente por nombre o cédula..."
-              value={terminoBusqueda}
-              onChange={handleBusquedaChange}
-              onFocus={() => { if (terminoBusqueda.trim().length > 1) setShowResultados(true); }}
-              className="w-full bg-white/10 text-guadalupe-blanco text-xs px-12 py-2 rounded-full focus:outline-none focus:ring-1 focus:ring-guadalupe-amarillo border border-transparent placeholder-guadalupe-blanco/50 shadow-sm"
-            />
+          <div className="flex items-center gap-2 md:gap-4 flex-1">
+            {/* NUEVO: Botón Hamburguesa para Móviles */}
+            <button 
+              onClick={() => setMenuAbierto(true)}
+              className="md:hidden p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition"
+            >
+              <Menu size={22} />
+            </button>
 
-            {/* Ventana flotante de resultados del buscador */}
-            {showResultados && (
-              <div className="absolute left-0 mt-2 w-full bg-[#242e42] border border-gray-700 rounded-2xl shadow-2xl py-2 px-3 z-50 max-h-60 overflow-y-auto">
-                <p className="text-[10px] uppercase font-bold text-gray-400 px-2 mb-1">Resultados de Clientes</p>
-                {resultadosBusqueda.length === 0 ? (
-                  <p className="text-xs text-gray-400 px-2 py-2 text-center">No se encontraron clientes.</p>
-                ) : (
-                  resultadosBusqueda.map((c: any) => (
-                    <div 
-                      key={c.id} 
-                      onClick={() => {
-                        setShowResultados(false);
-                        setTerminoBusqueda('');
-                        navigate('/clientes');
-                      }}
-                      className="p-2 hover:bg-white/5 rounded-xl cursor-pointer transition text-xs border-b border-gray-700/50 last:border-none"
-                    >
-                      <p className="font-bold text-white">{c.nombre_completo}</p>
-                      <p className="text-gray-400 text-[10px]">Cédula: {c.documento_identidad}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            {/* BUSCADOR GLOBAL */}
+            <div className="relative w-full max-w-[140px] sm:max-w-[200px] md:max-w-[360px]">
+              <Search className="absolute left-3 top-2 text-guadalupe-blanco/40 hidden sm:block" size={16} />
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={terminoBusqueda}
+                onChange={handleBusquedaChange}
+                onFocus={() => { if (terminoBusqueda.trim().length > 1) setShowResultados(true); }}
+                className="w-full bg-white/10 text-guadalupe-blanco text-xs px-3 sm:px-10 py-2 rounded-full focus:outline-none focus:ring-1 focus:ring-guadalupe-amarillo border border-transparent placeholder-guadalupe-blanco/50 shadow-sm"
+              />
+
+              {/* Ventana flotante de resultados del buscador */}
+              {showResultados && (
+                <div className="absolute left-0 mt-2 w-[280px] md:w-full bg-[#242e42] border border-gray-700 rounded-2xl shadow-2xl py-2 px-3 z-50 max-h-60 overflow-y-auto">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 px-2 mb-1">Resultados</p>
+                  {resultadosBusqueda.length === 0 ? (
+                    <p className="text-xs text-gray-400 px-2 py-2 text-center">No se encontraron clientes.</p>
+                  ) : (
+                    resultadosBusqueda.map((c: any) => (
+                      <div 
+                        key={c.id} 
+                        onClick={() => {
+                          setShowResultados(false);
+                          setTerminoBusqueda('');
+                          navigate('/clientes');
+                        }}
+                        className="p-2 hover:bg-white/5 rounded-xl cursor-pointer transition text-xs border-b border-gray-700/50 last:border-none"
+                      >
+                        <p className="font-bold text-white">{c.nombre_completo}</p>
+                        <p className="text-gray-400 text-[10px]">Cédula: {c.documento_identidad}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-6 relative">
+          <div className="flex items-center gap-3 md:gap-6 relative">
             
-            {/* 2. NOTIFICACIONES INTERACTIVAS (CAMPANITA) */}
+            {/* NOTIFICACIONES */}
             <div className="relative">
               <div 
                 onClick={() => setNotifOpen(!notifOpen)}
@@ -259,7 +298,7 @@ export default function Layout() {
 
               {/* Menú desplegable de notificaciones */}
               {notifOpen && (
-                <div className="absolute right-0 mt-3 w-72 bg-[#242e42] border border-gray-700 rounded-2xl shadow-2xl py-3 px-4 z-50">
+                <div className="absolute right-[-40px] md:right-0 mt-3 w-[260px] md:w-72 bg-[#242e42] border border-gray-700 rounded-2xl shadow-2xl py-3 px-4 z-50">
                   <h4 className="text-xs font-bold uppercase text-gray-400 mb-2 border-b border-gray-700 pb-1 flex justify-between items-center">
                     <span>Notificaciones Recientes</span>
                   </h4>
@@ -276,8 +315,8 @@ export default function Layout() {
               )}
             </div>
 
-            {/* 3. SELECTOR DE PAÍS E IDIOMA (COLOMBIA 🇨🇴) */}
-            <div className="flex items-center gap-2 cursor-pointer bg-white/10 px-4 py-1.5 rounded-full border border-white/5 hover:bg-white/20 transition">
+            {/* SELECTOR DE PAÍS E IDIOMA (Oculto en celular para ahorrar espacio) */}
+            <div className="hidden sm:flex items-center gap-2 cursor-pointer bg-white/10 px-4 py-1.5 rounded-full border border-white/5 hover:bg-white/20 transition">
               <img src="https://flagcdn.com/w20/co.png" alt="CO" className="w-5 h-4 rounded-sm object-cover shadow-sm" />
               <span className="text-sm font-semibold text-guadalupe-blanco flex items-center gap-1">Colombia <ChevronDown size={14} /></span>
             </div>
@@ -288,18 +327,18 @@ export default function Layout() {
                 className="flex items-center gap-3 cursor-pointer group px-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
                 onClick={() => setProfileOpen(!profileOpen)}
               >
-                <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-white/20 bg-orange-100">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center overflow-hidden border border-white/20 bg-orange-100">
                   <img
                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreUsuario}&backgroundColor=ffdfbf`}
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="text-left hidden sm:block">
+                <div className="text-left hidden lg:block">
                   <p className="text-sm font-bold leading-tight text-white">{nombreUsuario}</p>
                   <p className="text-[11px] text-guadalupe-blanco/70">Admin</p>
                 </div>
-                <ChevronDown size={14} className="text-gray-400 group-hover:text-white transition-colors" />
+                <ChevronDown size={14} className="text-gray-400 group-hover:text-white transition-colors hidden sm:block" />
               </div>
 
               {/* Menú Desplegable del Perfil */}
@@ -318,8 +357,8 @@ export default function Layout() {
           </div>
         </header>
 
-        {/* Área dinámica */}
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        {/* Área dinámica con padding ajustado para móviles */}
+        <main className="flex-1 overflow-y-auto p-4 md:px-8 md:py-6">
           <Outlet />
         </main>
       </div>
