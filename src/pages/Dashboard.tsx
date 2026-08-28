@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Wallet, TrendingUp, AlertCircle, Navigation, TrendingDown, DollarSign } from 'lucide-react';
+import { Users, Wallet, TrendingUp, AlertCircle, Navigation, TrendingDown,  } from 'lucide-react';
 import api from '../services/api';
 import {
   Chart as ChartJS,

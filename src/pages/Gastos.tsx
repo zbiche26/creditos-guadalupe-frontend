@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, DollarSign, Calendar, FileText, X } from 'lucide-react';
+import { Plus, DollarSign, FileText, X } from 'lucide-react';
 import api from '../services/api';
 
 interface Gasto {

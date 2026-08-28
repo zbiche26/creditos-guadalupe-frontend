@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar, DollarSign } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar,  } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
