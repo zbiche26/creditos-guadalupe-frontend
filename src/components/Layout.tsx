@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
+import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight, LogOut, AlertCircle, CreditCard } from 'lucide-react';
 import logo from '../assets/logo.png';
 import api from '../services/api';
 
@@ -12,12 +12,12 @@ export default function Layout() {
   const [nombreUsuario, setNombreUsuario] = useState('Administrador');
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // NUEVO 1: Estados para el Buscador Global
+  // Estados para el Buscador Global
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [resultadosBusqueda, setResultadosBusqueda] = useState<any[]>([]);
   const [showResultados, setShowResultados] = useState(false);
 
-  // NUEVO 2: Estados para Notificaciones
+  // Estados para Notificaciones
   const [notifOpen, setNotifOpen] = useState(false);
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
 
@@ -28,12 +28,10 @@ export default function Layout() {
       setNombreUsuario(nombre.charAt(0).toUpperCase() + nombre.slice(1));
     }
 
-    // Cargar datos iniciales para la campanita de notificaciones (ej: últimos clientes registrados)
     const cargarNotificaciones = async () => {
       try {
         const respuesta = await api.get('/clientes/');
         const listaClientes = respuesta.data.datos || [];
-        // Tomamos los últimos 4 clientes como notificaciones de actividad reciente
         setNotificaciones(listaClientes.slice(-4).reverse());
       } catch (error) {
         console.error("Error al cargar notificaciones:", error);
@@ -42,7 +40,6 @@ export default function Layout() {
     cargarNotificaciones();
   }, []);
 
-  // Lógica del buscador global en tiempo real
   const handleBusquedaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value;
     setTerminoBusqueda(valor);
@@ -72,7 +69,7 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const isClientesActive = location.pathname.includes('/clientes');
+  const isClientesActive = location.pathname.includes('/clientes') || location.pathname.includes('/creditos');
 
   return (
     <div className="flex h-screen bg-[#1A2235] text-guadalupe-blanco overflow-hidden font-sans">
@@ -146,6 +143,29 @@ export default function Layout() {
                     }`}
                   >
                     Actualizar Datos
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/clientes/mora"
+                    className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition ${
+                      location.pathname.includes('/mora') ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <AlertCircle size={14} className="text-red-500" />
+                    <span>Clientes en Mora</span>
+                  </Link>
+                </li>
+                {/* NUEVO MÓDULO: Historial Global de Créditos */}
+                <li>
+                  <Link
+                    to="/creditos/historial"
+                    className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition ${
+                      location.pathname.includes('/creditos/historial') ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <CreditCard size={14} className="text-[#ffc107]" />
+                    <span>Historial Créditos</span>
                   </Link>
                 </li>
               </ul>

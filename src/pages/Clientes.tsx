@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+
+interface CreditoHistorial {
+  id: string;
+  codigo_credito?: string;
+  numero_credito?: string;
+  monto_prestado: number;
+  monto_total_pagar: number;
+  saldo_restante: number;
+  modalidad: string;
+  estado: string;
+  created_at: string;
+}
 
 interface Cliente {
   id?: string;
@@ -22,6 +34,7 @@ interface Cliente {
   created_at?: string;
   estado_credito?: string;
   dias_mora?: number;
+  historial_creditos?: CreditoHistorial[];
 }
 
 export default function Clientes() {
@@ -63,6 +76,10 @@ export default function Clientes() {
     return `${fecha.getDate()}/${fecha.getMonth() + 1}/${fecha.getFullYear()}`;
   };
 
+  const formatearDinero = (monto: number) => {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(monto || 0);
+  };
+
   const renderEstadoBadge = (estado_credito: string, diasMora: number = 0) => {
     switch (estado_credito) {
       case 'AL_DIA':
@@ -78,6 +95,7 @@ export default function Clientes() {
           </span>
         );
       case 'PROXIMO':
+      case 'PRÓXIMO A PAGAR':
         return (
           <span className="bg-yellow-500/20 text-[#ffc107] px-3 py-1.5 rounded-full text-[10px] font-extrabold border border-[#ffc107]/30 whitespace-nowrap tracking-wider">
             PRÓXIMO A PAGAR
@@ -143,13 +161,12 @@ export default function Clientes() {
                   const estadoMostrar = cliente.estado_credito || 'SIN_CREDITO';
                   const diasMoraMostrar = cliente.dias_mora || 0;
 
-                  // Lógica limpia para mostrar el número de crédito o asignar un consecutivo si está vacío
                   const mostrarCredito = cliente.numero_credito && cliente.numero_credito !== 'N/A' && cliente.numero_credito !== '0' && cliente.numero_credito !== 'SIN CRÉDITO'
                     ? cliente.numero_credito
-                    : (estadoMostrar !== 'SIN_CREDITO' ? `CRD-${(index + 1).toString().padStart(3, '0')}` : 'Sin Crédito');
+                    : 'Sin Crédito';
 
                   return (
-                    <tr key={index} className="hover:bg-[#2a354a] transition border-b border-gray-700/20 last:border-0">
+                    <tr key={cliente.id || index} className="hover:bg-[#2a354a] transition border-b border-gray-700/20 last:border-0">
                       <td className="px-5 py-4 text-center font-bold text-gray-500">
                         {(index + 1).toString().padStart(2, '0')}
                       </td>
@@ -193,7 +210,7 @@ export default function Clientes() {
                         <button
                           onClick={() => setClienteSeleccionado(cliente)}
                           className="p-2 bg-gray-700/50 hover:bg-[#ffc107] text-gray-300 hover:text-[#111927] rounded-lg transition"
-                          title="Ver Perfil"
+                          title="Ver Perfil e Historial"
                         >
                           <Eye size={18} />
                         </button>
@@ -207,10 +224,10 @@ export default function Clientes() {
         </div>
       </div>
 
-      {/* MODAL DE PERFIL DEL CLIENTE */}
+      {/* MODAL DE PERFIL E HISTORIAL DE CRÉDITOS */}
       {clienteSeleccionado && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#0f1522] rounded-2xl w-full max-w-5xl relative shadow-2xl p-6 border border-gray-700/50">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-[#0f1522] rounded-2xl w-full max-w-5xl relative shadow-2xl p-6 border border-gray-700/50 my-8">
             <button
               onClick={() => setClienteSeleccionado(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-white bg-gray-800 p-1.5 rounded-full transition"
@@ -219,10 +236,11 @@ export default function Clientes() {
             </button>
 
             <h2 className="text-2xl font-bold text-white mb-6 pl-2 border-l-4 border-[#ffc107]">
-              Perfil del Cliente
+              Perfil del Cliente e Historial
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mb-8">
+              {/* Datos Personales */}
               <div className="flex flex-col shadow-lg rounded-xl overflow-hidden border border-gray-600/30">
                 <div className="bg-gray-300 py-2.5 text-center">
                   <h3 className="text-[#111927] font-black text-[15px] uppercase tracking-widest">
@@ -254,25 +272,21 @@ export default function Clientes() {
                     <span className="text-gray-300 font-semibold">Barrio:</span>
                     <span className="text-white font-medium">{clienteSeleccionado.barrio || 'N/A'}</span>
                   </div>
-                  <div className="grid grid-cols-[140px_1fr] items-center border-b border-white/5 pb-2">
-                    <span className="text-gray-300 font-semibold">Número de Crédito:</span>
-                    <span className="text-white font-medium">{clienteSeleccionado.numero_credito || 'N/A'}</span>
-                  </div>
 
                   <div className="flex justify-between items-center pt-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-300 font-semibold w-[132px]">Ruta:</span>
-                      <span className="text-white font-medium">001</span>
+                      <span className="text-gray-300 font-semibold w-[132px]">Crédito Actual:</span>
+                      <span className="text-[#ffc107] font-bold">{clienteSeleccionado.numero_credito || 'N/A'}</span>
                     </div>
                     <button onClick={() => navigate(`/clientes/${clienteSeleccionado.id}/creditos`, { state: { cliente: clienteSeleccionado } })}
                             className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition">
-                       Ver Créditos
+                       Gestionar Créditos
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* TARJETA DATOS DE FIADOR */}
+              {/* Datos de Fiador */}
               <div className="flex flex-col shadow-lg rounded-xl overflow-hidden border border-gray-600/30">
                 <div className="bg-gray-300 py-2.5 text-center">
                   <h3 className="text-[#111927] font-black text-[15px] uppercase tracking-widest">
@@ -303,6 +317,55 @@ export default function Clientes() {
                 </div>
               </div>
             </div>
+
+            {/* SECCIÓN DE HISTORIAL DE CRÉDITOS DENTRO DEL MODAL */}
+            <div className="bg-[#1a2235] rounded-xl p-5 border border-gray-700/40">
+              <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                <CreditCard size={18} className="text-[#ffc107]" /> Historial de Créditos Registrados
+              </h3>
+
+              {!clienteSeleccionado.historial_creditos || clienteSeleccionado.historial_creditos.length === 0 ? (
+                <p className="text-gray-400 text-xs text-center py-4">No hay registros previos de créditos para este cliente.</p>
+              ) : (
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                  {clienteSeleccionado.historial_creditos.map((credito, idx) => (
+                    <div key={credito.id || idx} className="bg-[#151c2c] rounded-xl p-3.5 border border-gray-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">
+                            {credito.codigo_credito || credito.numero_credito || `Crédito #${idx + 1}`}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold uppercase border ${
+                            credito.estado === 'ACTIVO' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                          }`}>
+                            {credito.estado}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <Calendar size={12} /> Modalidad: <span className="text-white font-medium">{credito.modalidad}</span>
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 text-right w-full sm:w-auto bg-[#1a2235] p-2.5 rounded-lg border border-gray-700/30 text-xs">
+                        <div>
+                          <p className="text-[9px] uppercase text-gray-400 font-bold">Prestado</p>
+                          <p className="text-white font-semibold">{formatearDinero(credito.monto_prestado)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase text-gray-400 font-bold">Total a Pagar</p>
+                          <p className="text-amber-400 font-semibold">{formatearDinero(credito.monto_total_pagar)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase text-gray-400 font-bold">Saldo Restante</p>
+                          <p className="text-red-400 font-bold">{formatearDinero(credito.saldo_restante)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       )}

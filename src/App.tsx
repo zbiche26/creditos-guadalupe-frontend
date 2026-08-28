@@ -13,6 +13,8 @@ import Calendario from './pages/Calendario';
 import Configuracion from './pages/Configuracion';
 import Ventas from './pages/Ventas';
 import CrearVenta from './pages/CrearVenta';
+import ClientesEnMora from './pages/ClientesEnMora';
+import HistorialGlobalCreditos from './pages/HistorialGlobalCreditos';
 
 function App() {
   return (
@@ -26,7 +28,9 @@ function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/clientes/nuevos" element={<ClientesNuevos />} />
           <Route path="/clientes/actualizar" element={<ActualizarDatos />} />
+          <Route path="/clientes/mora" element={<ClientesEnMora />} />
           <Route path="/clientes/:id/creditos" element={<CreditosCliente />} />
+          <Route path="/creditos/historial" element={<HistorialGlobalCreditos />} />
           
           <Route path="/ventas" element={<Ventas />} />
           <Route path="/enrutar" element={<EnrutarClientes />} />
@@ -34,8 +38,7 @@ function App() {
           <Route path="/configuracion" element={<Configuracion />} />
           <Route path="/gastos" element={<Gastos />} />
           <Route path="/totalizar-ventas" element={<TotalizarVentas />} />
-          <Route path="/ventas" element={<Ventas />} />
-          <Route path="/ventas/crear" element={<CrearVenta />} />  {/* <-- LÍNEA NUEVA */}
+          <Route path="/ventas/crear" element={<CrearVenta />} />
         </Route>
         
         {/* Ruta comodín por si escriben una URL que no existe */}
