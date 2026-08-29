@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png'; // <-- Mantenemos tu importación del logo real
+import logo from '../assets/logo.png';
 import api from '../services/api';
 
 export default function Login() {
@@ -27,9 +27,10 @@ export default function Login() {
         localStorage.setItem('token', response.data.token_acceso);
         localStorage.setItem('usuario_email', email); 
         
-        // NUEVO: Guardamos los IDs reales del usuario y su empresa
+        // Guardamos los IDs reales del usuario, su empresa y su ROL
         localStorage.setItem('usuario_id', response.data.usuario.id);
         localStorage.setItem('empresa_id', response.data.usuario.empresa_id);
+        localStorage.setItem('usuario_rol', response.data.usuario.rol); // <- AQUÍ ATRAPAMOS EL ROL
         
         navigate('/dashboard');
       } else {
@@ -52,7 +53,6 @@ export default function Login() {
         {/* Logo Circular */}
         <div className="flex justify-center mb-6">
           <div className="w-28 h-28 bg-[#111927] rounded-full flex items-center justify-center shadow-inner overflow-hidden">
-            {/* Usamos tu variable {logo} para que cargue tu imagen de assets */}
             <img src={logo} alt="Créditos Guadalupe" className="w-20 h-auto object-contain" />
           </div>
         </div>
