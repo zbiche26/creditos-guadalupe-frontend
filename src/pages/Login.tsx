@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import api from '../services/api';
@@ -6,10 +6,20 @@ import api from '../services/api';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
+
+  // Al cargar, revisamos si hay un correo recordado previamente
+  useEffect(() => {
+    const correoGuardado = localStorage.getItem('correo_recordado');
+    if (correoGuardado) {
+      setEmail(correoGuardado);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +39,13 @@ export default function Login() {
         localStorage.setItem('empresa_id', response.data.usuario.empresa_id);
         localStorage.setItem('usuario_rol', response.data.usuario.rol);
         
+        // Manejo de la opción Recordar Contraseña
+        if (rememberMe) {
+          localStorage.setItem('correo_recordado', email);
+        } else {
+          localStorage.removeItem('correo_recordado');
+        }
+        
         navigate('/dashboard');
       } else {
         setError(response.data.detalle || 'Error al iniciar sesión');
@@ -36,7 +53,7 @@ export default function Login() {
 
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      setError('Correo o contraseña incorrectos. Por favor, intenta de nuevo.');
+      setError('Correo o contraseña incorrectos. Por forma, intenta de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +123,9 @@ export default function Login() {
             <input 
               type="checkbox" 
               id="recordar"
-              className="w-4 h-4 rounded border-slate-300 text-[#152D57] focus:ring-[#152D57]"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-[#152D57] focus:ring-[#152D57] cursor-pointer"
             />
             <label htmlFor="recordar" className="text-slate-500 text-sm font-medium cursor-pointer">
               Recordar Contraseña
@@ -128,13 +147,6 @@ export default function Login() {
           </button>
 
         </form>
-
-        <div className="mt-8 text-center text-sm">
-          <span className="text-slate-500">No tiene cuenta ? </span>
-          <a href="#" className="text-blue-500 font-bold hover:underline">
-            Crear cuenta
-          </a>
-        </div>
 
       </div>
     </div>
