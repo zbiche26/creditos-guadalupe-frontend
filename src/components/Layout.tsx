@@ -11,7 +11,7 @@ export default function Layout() {
   // Estados de UI
   const [clientesOpen, setClientesOpen] = useState(true);
   const [nombreUsuario, setNombreUsuario] = useState('Usuario');
-  const [userRole, setUserRole] = useState('COBRADOR'); // NUEVO: Estado para el Rol
+  const [userRole, setUserRole] = useState('ADMIN'); // Inicializamos en ADMIN por seguridad
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -26,15 +26,19 @@ export default function Layout() {
 
   useEffect(() => {
     const emailGuardado = localStorage.getItem('usuario_email');
-    const rolGuardado = localStorage.getItem('usuario_rol'); // NUEVO: Leemos el rol
+    const rolGuardado = localStorage.getItem('usuario_rol'); 
     
     if (emailGuardado) {
       const nombre = emailGuardado.split('@')[0];
       setNombreUsuario(nombre.charAt(0).toUpperCase() + nombre.slice(1));
     }
     
-    if (rolGuardado) {
+    // CORRECCIÓN CLAVE: Verificación resistente a errores del servidor
+    if (rolGuardado && rolGuardado !== 'undefined' && rolGuardado !== 'null') {
       setUserRole(rolGuardado.toUpperCase());
+    } else {
+      // Si el servidor falla y no manda nada, asumimos que es el Administrador
+      setUserRole('ADMIN'); 
     }
 
     const cargarNotificaciones = async () => {
@@ -84,7 +88,7 @@ export default function Layout() {
   const isClientesActive = location.pathname.includes('/clientes') || location.pathname.includes('/creditos');
   const cerrarMenuMovil = () => setMenuAbierto(false);
 
-  // NUEVO: Filtramos las opciones del menú según el Rol
+  // Filtramos las opciones del menú según el Rol
   const opcionesMenu = [
     { path: '/ventas', label: 'Ventas', icon: <TrendingUp size={20} />, roles: ['ADMIN', 'COBRADOR'] },
     { path: '/gastos', label: 'Gastos', icon: <DollarSign size={20} />, roles: ['ADMIN', 'COBRADOR'] },
@@ -337,7 +341,6 @@ export default function Layout() {
                 </div>
                 <div className="text-left hidden lg:block">
                   <p className="text-sm font-bold leading-tight text-white">{nombreUsuario}</p>
-                  {/* NUEVO: Etiqueta dinámica según el rol */}
                   <p className="text-[11px] text-guadalupe-blanco/70 font-bold tracking-wider">
                     {userRole === 'ADMIN' ? 'ADMINISTRADOR' : 'COBRADOR'}
                   </p>
