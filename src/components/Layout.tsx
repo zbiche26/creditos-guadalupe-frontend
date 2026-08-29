@@ -11,7 +11,7 @@ export default function Layout() {
   // Estados de UI
   const [clientesOpen, setClientesOpen] = useState(true);
   const [nombreUsuario, setNombreUsuario] = useState('Usuario');
-  const [userRole, setUserRole] = useState('ADMIN'); // Inicializamos en ADMIN por seguridad
+  const [userRole, setUserRole] = useState('ADMIN'); 
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -33,11 +33,9 @@ export default function Layout() {
       setNombreUsuario(nombre.charAt(0).toUpperCase() + nombre.slice(1));
     }
     
-    // CORRECCIÓN CLAVE: Verificación resistente a errores del servidor
     if (rolGuardado && rolGuardado !== 'undefined' && rolGuardado !== 'null') {
       setUserRole(rolGuardado.toUpperCase());
     } else {
-      // Si el servidor falla y no manda nada, asumimos que es el Administrador
       setUserRole('ADMIN'); 
     }
 
@@ -88,7 +86,6 @@ export default function Layout() {
   const isClientesActive = location.pathname.includes('/clientes') || location.pathname.includes('/creditos');
   const cerrarMenuMovil = () => setMenuAbierto(false);
 
-  // Filtramos las opciones del menú según el Rol
   const opcionesMenu = [
     { path: '/ventas', label: 'Ventas', icon: <TrendingUp size={20} />, roles: ['ADMIN', 'COBRADOR'] },
     { path: '/gastos', label: 'Gastos', icon: <DollarSign size={20} />, roles: ['ADMIN', 'COBRADOR'] },
@@ -99,7 +96,7 @@ export default function Layout() {
   ].filter(item => item.roles.includes(userRole));
 
   return (
-    <div className="flex h-screen bg-[#1A2235] text-guadalupe-blanco overflow-hidden font-sans relative">
+    <div className="flex h-screen bg-[#152D57] text-guadalupe-blanco overflow-hidden font-sans relative">
 
       {menuAbierto && (
         <div 
@@ -108,8 +105,9 @@ export default function Layout() {
         />
       )}
 
+      {/* Barra lateral izquierda con el nuevo color #152D57 */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-[260px] bg-guadalupe-azul flex flex-col shadow-2xl overflow-y-auto
+        fixed inset-y-0 left-0 z-50 w-[260px] bg-[#152D57] flex flex-col shadow-2xl overflow-y-auto
         transform transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0
         ${menuAbierto ? 'translate-x-0' : '-translate-x-full'}
@@ -124,7 +122,6 @@ export default function Layout() {
 
         <nav className="flex-1 flex flex-col gap-1.5 py-2">
           
-          {/* RESTRICCIÓN: Solo el ADMIN ve el Panel */}
           {userRole === 'ADMIN' && (
             <div>
               <Link
@@ -142,7 +139,6 @@ export default function Layout() {
             </div>
           )}
 
-          {/* Menú Desplegable de Clientes (Visible para todos) */}
           <div>
             <button
               onClick={() => setClientesOpen(!clientesOpen)}
@@ -222,7 +218,6 @@ export default function Layout() {
             )}
           </div>
 
-          {/* Menú Dinámico Restringido */}
           {opcionesMenu.map((item) => (
             <div key={item.path}>
               <Link
@@ -243,7 +238,8 @@ export default function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden relative w-full">
-        <header className="h-[76px] flex items-center justify-between px-4 md:px-8 bg-guadalupe-azul border-b border-white/5 shadow-sm z-30">
+        {/* Barra de arriba con el nuevo color #152D57 */}
+        <header className="h-[76px] flex items-center justify-between px-4 md:px-8 bg-[#152D57] border-b border-white/5 shadow-sm z-30">
           
           <div className="flex items-center gap-2 md:gap-4 flex-1">
             <button 
@@ -298,7 +294,7 @@ export default function Layout() {
               >
                 <Bell size={22} fill="currentColor" />
                 {notificaciones.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#ef4444] text-[10px] font-bold text-white rounded-full h-[18px] w-[18px] flex items-center justify-center border-2 border-guadalupe-azul animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-[#ef4444] text-[10px] font-bold text-white rounded-full h-[18px] w-[18px] flex items-center justify-center border-2 border-[#152D57] animate-pulse">
                     {notificaciones.length}
                   </span>
                 )}
@@ -363,7 +359,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:px-8 md:py-6">
+        <main className="flex-1 overflow-y-auto p-4 md:px-8 md:py-6 bg-[#1A2235]">
           <Outlet />
         </main>
       </div>
