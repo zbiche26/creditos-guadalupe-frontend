@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar,  } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -50,6 +50,7 @@ export default function Clientes() {
     setIsLoading(true);
     setError('');
     try {
+      // Optimizamos para que consulte la ruta general de clientes
       const response = await api.get('/clientes/');
       if (response.data.datos) {
         setClientes(response.data.datos);
@@ -159,6 +160,7 @@ export default function Clientes() {
               ) : (
                 clientes.map((cliente, index) => {
                   const estadoMostrar = cliente.estado_credito || 'SIN_CREDITO';
+                  // Sincronizamos para que tome directamente los días de mora calculados por el backend
                   const diasMoraMostrar = cliente.dias_mora || 0;
 
                   const mostrarCredito = cliente.numero_credito && cliente.numero_credito !== 'N/A' && cliente.numero_credito !== '0' && cliente.numero_credito !== 'SIN CRÉDITO'
@@ -280,7 +282,7 @@ export default function Clientes() {
                     </div>
                     <button onClick={() => navigate(`/clientes/${clienteSeleccionado.id}/creditos`, { state: { cliente: clienteSeleccionado } })}
                             className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition">
-                       Gestionar Créditos
+                        Gestionar Créditos
                     </button>
                   </div>
                 </div>
