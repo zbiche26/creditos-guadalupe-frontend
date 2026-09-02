@@ -17,10 +17,10 @@ export default function Gastos() {
   const [isLoading, setIsLoading] = useState(true);
   const [modalAbierto, setModalAbierto] = useState(false);
 
-  // Formulario de nuevo gasto
+  // Formulario de nuevo gasto (Manjeados como texto para las máscaras)
   const [cantidad, setCantidad] = useState('1');
   const [descripcion, setDescripcion] = useState('');
-  const [valorUnitario, setValorUnitario] = useState('');
+  const [valorInput, setValorInput] = useState('');
 
   const cargarGastos = async (tipoFiltro: string) => {
     setIsLoading(true);
@@ -42,6 +42,21 @@ export default function Gastos() {
     cargarGastos(filtro);
   }, [filtro]);
 
+  // Manejador para ponerle puntos de miles al valor
+  const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const soloNumeros = e.target.value.replace(/\D/g, '');
+    if (!soloNumeros) {
+      setValorInput('');
+      return;
+    }
+    setValorInput(new Intl.NumberFormat('es-CO').format(parseInt(soloNumeros, 10)));
+  };
+
+  // Manejador para la cantidad (evita letras y flechitas)
+  const handleCantidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCantidad(e.target.value.replace(/\D/g, ''));
+  };
+
   const handleSubmitGasto = async (e: React.FormEvent) => {
     e.preventDefault();
     const empresaId = localStorage.getItem('empresa_id');
@@ -52,21 +67,30 @@ export default function Gastos() {
       return;
     }
 
+    // Le quitamos los puntos para enviar el número real a la base de datos
+    const valorReal = parseInt(valorInput.replace(/\./g, ''), 10) || 0;
+    const cantidadReal = parseInt(cantidad, 10) || 1;
+
+    if (valorReal <= 0) {
+      alert("El valor del gasto debe ser mayor a cero.");
+      return;
+    }
+
     try {
       await api.post('/gastos/', {
         empresa_id: empresaId,
         usuario_id: usuarioId,
-        cantidad: parseInt(cantidad),
+        cantidad: cantidadReal,
         descripcion: descripcion,
-        valor_unitario: parseFloat(valorUnitario)
+        valor_unitario: valorReal
       });
 
       alert("¡Gasto registrado con éxito!");
       setModalAbierto(false);
       setCantidad('1');
       setDescripcion('');
-      setValorUnitario('');
-      cargarGastos(filtro); // Recargar tabla
+      setValorInput('');
+      cargarGastos(filtro);
     } catch (error: any) {
       console.error("Error al registrar gasto:", error);
       alert("Error al guardar el gasto: " + (error.response?.data?.detail || "Revisa la consola"));
@@ -197,12 +221,11 @@ export default function Gastos() {
                 <div>
                   <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wide">Cantidad</label>
                   <input
-                    type="number"
-                    min="1"
+                    type="text"
                     required
                     className="w-full bg-[#151c2c] text-white text-sm px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffc107] border border-gray-700 text-center"
                     value={cantidad}
-                    onChange={(e) => setCantidad(e.target.value)}
+                    onChange={handleCantidadChange}
                   />
                 </div>
 
@@ -213,12 +236,12 @@ export default function Gastos() {
                       <DollarSign size={16} className="text-gray-500" />
                     </div>
                     <input
-                      type="number"
+                      type="text"
                       required
-                      className="w-full bg-[#151c2c] text-white text-sm pl-9 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffc107] border border-gray-700"
-                      placeholder="Ej. 15000"
-                      value={valorUnitario}
-                      onChange={(e) => setValorUnitario(e.target.value)}
+                      className="w-full bg-[#151c2c] text-white text-sm pl-9 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffc107] border border-gray-700 placeholder-gray-600"
+                      placeholder="Ej. 15.000"
+                      value={valorInput}
+                      onChange={handleValorChange}
                     />
                   </div>
                 </div>
@@ -227,7 +250,10 @@ export default function Gastos() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full bg-[#ffc107] hover:bg-yellow-400 text-[#111927] font-extrabold py-3.5 rounded-xl shadow-lg transition uppercase tracking-wider text-sm"
+                  disabled={!valorInput || !descripcion}
+                  className={`w-full font-extrabold py-3.5 rounded-xl shadow-lg transition uppercase tracking-wider text-sm ${
+                    !valorInput || !descripcion ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-[#ffc107] hover:bg-yellow-400 text-[#111927]'
+                  }`}
                 >
                   Guardar Gasto
                 </button>

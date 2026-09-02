@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import ModalRenovarCredito from '../components/ModalRenovarCredito';
 
 interface CreditoHistorial {
   id: string;
@@ -43,6 +44,9 @@ export default function Clientes() {
   const [error, setError] = useState('');
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
+  
+  // ESTADO PARA EL MODAL DE RENOVAR DESDE EL DIRECTORIO
+  const [modalRenovarAbierto, setModalRenovarAbierto] = useState(false);
 
   const navigate = useNavigate();
 
@@ -50,7 +54,6 @@ export default function Clientes() {
     setIsLoading(true);
     setError('');
     try {
-      // Optimizamos para que consulte la ruta general de clientes
       const response = await api.get('/clientes/');
       if (response.data.datos) {
         setClientes(response.data.datos);
@@ -112,6 +115,9 @@ export default function Clientes() {
     }
   };
 
+  // Buscamos si el cliente seleccionado tiene un crédito activo actualmente para poder renovarlo
+  const creditoActivoDelCliente = clienteSeleccionado?.historial_creditos?.find(c => c.estado === 'ACTIVO');
+
   return (
     <div className="w-full max-w-[1400px] mx-auto font-sans pb-10">
 
@@ -160,7 +166,6 @@ export default function Clientes() {
               ) : (
                 clientes.map((cliente, index) => {
                   const estadoMostrar = cliente.estado_credito || 'SIN_CREDITO';
-                  // Sincronizamos para que tome directamente los días de mora calculados por el backend
                   const diasMoraMostrar = cliente.dias_mora || 0;
 
                   const mostrarCredito = cliente.numero_credito && cliente.numero_credito !== 'N/A' && cliente.numero_credito !== '0' && cliente.numero_credito !== 'SIN CRÉDITO'
@@ -275,15 +280,30 @@ export default function Clientes() {
                     <span className="text-white font-medium">{clienteSeleccionado.barrio || 'N/A'}</span>
                   </div>
 
-                  <div className="flex justify-between items-center pt-2">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-3 border-t border-white/5 gap-3">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-300 font-semibold w-[132px]">Crédito Actual:</span>
                       <span className="text-[#ffc107] font-bold">{clienteSeleccionado.numero_credito || 'N/A'}</span>
                     </div>
-                    <button onClick={() => navigate(`/clientes/${clienteSeleccionado.id}/creditos`, { state: { cliente: clienteSeleccionado } })}
-                            className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition">
-                        Gestionar Créditos
-                    </button>
+                    
+                    {/* BOTONES DE ACCIÓN: Renovar y Gestionar */}
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      {creditoActivoDelCliente && (
+                        <button
+                          onClick={() => setModalRenovarAbierto(true)}
+                          className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/40 px-3 py-2 rounded-full text-xs font-bold transition uppercase tracking-wider flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
+                        >
+                          <RefreshCw size={14} /> Renovar
+                        </button>
+                      )}
+                      
+                      <button 
+                        onClick={() => navigate(`/clientes/${clienteSeleccionado.id}/creditos`, { state: { cliente: clienteSeleccionado } })}
+                        className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2.5 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition flex-1 sm:flex-none text-center"
+                      >
+                        Gestionar
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -371,6 +391,21 @@ export default function Clientes() {
           </div>
         </div>
       )}
+
+      {/* RENDERIZAMOS EL MODAL DE RENOVAR */}
+      {creditoActivoDelCliente && (
+        <ModalRenovarCredito
+          isOpen={modalRenovarAbierto}
+          onClose={() => setModalRenovarAbierto(false)}
+          creditoActivo={creditoActivoDelCliente}
+          onRenovacionExitosa={() => {
+            fetchClientes(); // Actualizamos la tabla
+            setClienteSeleccionado(null); // Cerramos el perfil para forzar actualización visual limpia
+            alert("¡Crédito renovado exitosamente!");
+          }}
+        />
+      )}
+
     </div>
   );
 }

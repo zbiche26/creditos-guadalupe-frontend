@@ -20,42 +20,41 @@ export default function TotalizarVentas() {
   const [vista, setVista] = useState<'liquidar' | 'historial'>('liquidar');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Estados del formulario de liquidación
-  const [datosLiquidacion, setDatosLiquidacion] = useState({
-    fecha: new Date().toISOString().split('T')[0],
-    metaRecaudo: 500000,
-    baseCaja: 0, // <-- Inicia en 0 para que el usuario la ingrese libremente
-    totalCobrado: 0,
-    totalGastos: 0,
-    creditosNuevos: 0,
-    efectivoEntregado: 0
-  });
+  // Estados del formulario
+  const [fecha] = useState(new Date().toISOString().split('T')[0]);
+  const [metaRecaudo, setMetaRecaudo] = useState(500000);
+  const [totalCobrado, setTotalCobrado] = useState(0);
+  const [totalGastos, setTotalGastos] = useState(0);
+  const [creditosNuevos, setCreditosNuevos] = useState(0);
+
+  // Campos tipeados por el usuario
+  const [baseInput, setBaseInput] = useState('');
+  const [efectivoInput, setEfectivoInput] = useState('');
 
   const [faltante, setFaltante] = useState(0);
   const [sobrante, setSobrante] = useState(0);
 
-  // Estados del historial
   const [historial, setHistorial] = useState<LiquidacionItem[]>([]);
   const [filtroHistorial, setFiltroHistorial] = useState<'dia' | 'semana' | 'mes' | 'todos'>('todos');
   const [isLoadingHistorial, setIsLoadingHistorial] = useState(false);
 
-  // Cargar datos reales de cobros y gastos del día desde el backend
+  // Cargar datos diarios
   useEffect(() => {
     const cargarDatosDiarios = async () => {
       setIsLoading(true);
       try {
         const response = await api.get('/liquidacion/diaria');
         const data = response.data;
-        setDatosLiquidacion(prev => ({
-          ...prev,
-          fecha: data.fecha,
-          metaRecaudo: data.meta_recaudo || 500000,
-          totalCobrado: data.total_cobrado,
-          totalGastos: data.total_gastos,
-          creditosNuevos: data.creditos_nuevos,
-          // El efectivo entregado inicial considera la base actual + lo cobrado - gastos
-          efectivoEntregado: prev.baseCaja + data.total_cobrado - data.total_gastos
-        }));
+        
+        setMetaRecaudo(data.meta_recaudo || 0);
+        setTotalCobrado(data.total_cobrado || 0);
+        setTotalGastos(data.total_gastos || 0);
+        setCreditosNuevos(data.creditos_nuevos || 0);
+
+        // FÓRMULA MÁGICA: Cobrado - Gastos - Créditos Nuevos
+        const efectivoSugerido = Math.max(0, (data.total_cobrado || 0) - (data.total_gastos || 0) - (data.creditos_nuevos || 0));
+        setEfectivoInput(efectivoSugerido > 0 ? new Intl.NumberFormat('es-CO').format(efectivoSugerido) : '');
+
       } catch (error) {
         console.error("Error al cargar datos de liquidación:", error);
       } finally {
@@ -68,10 +67,14 @@ export default function TotalizarVentas() {
     }
   }, [vista]);
 
-  // Recálculo dinámico cada vez que cambia la base, lo cobrado, los gastos o el efectivo entregado
+  // Recálculo dinámico matemático
   useEffect(() => {
-    const esperado = Number(datosLiquidacion.baseCaja) + Number(datosLiquidacion.totalCobrado) - Number(datosLiquidacion.totalGastos);
-    const diferencia = Number(datosLiquidacion.efectivoEntregado) - esperado;
+    const baseCajaNum = parseInt(baseInput.replace(/\D/g, ''), 10) || 0;
+    const efectivoNum = parseInt(efectivoInput.replace(/\D/g, ''), 10) || 0;
+
+    // FÓRMULA MATEMÁTICA CORREGIDA EN REACT
+    const esperado = baseCajaNum + totalCobrado - totalGastos - creditosNuevos;
+    const diferencia = efectivoNum - esperado;
 
     if (diferencia < 0) {
       setFaltante(Math.abs(diferencia));
@@ -80,18 +83,32 @@ export default function TotalizarVentas() {
       setSobrante(diferencia);
       setFaltante(0);
     }
-  }, [datosLiquidacion]);
+  }, [baseInput, efectivoInput, totalCobrado, totalGastos, creditosNuevos]);
 
-  // Función cuando el usuario modifica la Base manualmente
-  const handleBaseChange = (nuevaBase: number) => {
-    const baseValida = isNaN(nuevaBase) ? 0 : nuevaBase;
-    const nuevoEsperado = baseValida + datosLiquidacion.totalCobrado - datosLiquidacion.totalGastos;
+  // Manejador de la Base de Caja
+  const handleBaseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const soloNumeros = e.target.value.replace(/\D/g, '');
+    if (!soloNumeros) {
+      setBaseInput('');
+      setEfectivoInput(new Intl.NumberFormat('es-CO').format(Math.max(0, totalCobrado - totalGastos - creditosNuevos)));
+      return;
+    }
     
-    setDatosLiquidacion(prev => ({
-      ...prev,
-      baseCaja: baseValida,
-      efectivoEntregado: nuevoEsperado // Actualiza automáticamente lo que se debe entregar en caja
-    }));
+    const baseCajaNum = parseInt(soloNumeros, 10);
+    setBaseInput(new Intl.NumberFormat('es-CO').format(baseCajaNum));
+    
+    const nuevoEsperado = Math.max(0, baseCajaNum + totalCobrado - totalGastos - creditosNuevos);
+    setEfectivoInput(new Intl.NumberFormat('es-CO').format(nuevoEsperado));
+  };
+
+  // Manejador del Efectivo Físico
+  const handleEfectivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const soloNumeros = e.target.value.replace(/\D/g, '');
+    if (!soloNumeros) {
+      setEfectivoInput('');
+      return;
+    }
+    setEfectivoInput(new Intl.NumberFormat('es-CO').format(parseInt(soloNumeros, 10)));
   };
 
   const cargarHistorial = async (tipoFiltro: string) => {
@@ -119,18 +136,21 @@ export default function TotalizarVentas() {
   const handleLiquidar = async () => {
     const empresaId = localStorage.getItem('empresa_id');
     const cobradorId = localStorage.getItem('usuario_id');
+    
+    const baseCajaNum = parseInt(baseInput.replace(/\D/g, ''), 10) || 0;
+    const efectivoNum = parseInt(efectivoInput.replace(/\D/g, ''), 10) || 0;
 
     try {
       await api.post('/liquidaciones/', {
         empresa_id: empresaId || "00000000-0000-0000-0000-000000000000",
         cobrador_id: cobradorId || "00000000-0000-0000-0000-000000000000",
         ruta_id: "00000000-0000-0000-0000-000000000000",
-        fecha: datosLiquidacion.fecha,
-        meta_recaudo: datosLiquidacion.metaRecaudo,
-        base_entregada: datosLiquidacion.baseCaja,
-        total_cobrado: datosLiquidacion.totalCobrado,
-        total_gastos: datosLiquidacion.totalGastos,
-        valor_entregado_efectivo: datosLiquidacion.efectivoEntregado,
+        fecha: fecha,
+        meta_recaudo: metaRecaudo,
+        base_entregada: baseCajaNum,
+        total_cobrado: totalCobrado,
+        total_gastos: totalGastos,
+        valor_entregado_efectivo: efectivoNum,
         valor_faltante: faltante,
         valor_sobrante: sobrante
       });
@@ -144,7 +164,7 @@ export default function TotalizarVentas() {
   };
 
   const formatearDinero = (monto: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(monto);
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(monto || 0);
   };
 
   return (
@@ -193,7 +213,7 @@ export default function TotalizarVentas() {
               LIQUIDACIÓN DE COBRO - RUTA 002
             </h3>
             <span className="text-xs bg-amber-500/10 text-[#ffc107] border border-amber-500/20 px-3 py-1 rounded-full font-bold">
-              {datosLiquidacion.fecha}
+              {fecha}
             </span>
           </div>
 
@@ -203,34 +223,37 @@ export default function TotalizarVentas() {
             <div className="p-8 space-y-4 text-sm">
               <div className="flex justify-between items-center py-2.5 border-b border-gray-700/30">
                 <span className="text-gray-400 font-medium">Fecha de Liquidación:</span>
-                <span className="text-white font-bold">{datosLiquidacion.fecha}</span>
+                <span className="text-white font-bold">{fecha}</span>
               </div>
 
               <div className="flex justify-between items-center py-2.5 border-b border-gray-700/30">
                 <span className="text-gray-400 font-medium">Meta de Recaudo hoy:</span>
-                <span className="text-white font-bold">{formatearDinero(datosLiquidacion.metaRecaudo)}</span>
+                <span className="text-white font-bold">{formatearDinero(metaRecaudo)}</span>
               </div>
 
-              {/* CAMPO EDITABLE PARA LA BASE / CAJA DE INICIO */}
               <div className="flex justify-between items-center py-2 border-b border-gray-700/30">
                 <span className="text-gray-300 font-bold">Saldo Actual de Caja de Inicio (Base):</span>
-                <input
-                  type="number"
-                  className="bg-[#151c2c] text-[#ffc107] font-bold text-right px-4 py-2 rounded-xl border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#ffc107] w-48"
-                  value={datosLiquidacion.baseCaja}
-                  onChange={(e) => handleBaseChange(parseFloat(e.target.value) || 0)}
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                  <input
+                    type="text"
+                    className="bg-[#151c2c] text-[#ffc107] font-bold text-right pl-8 pr-4 py-2 rounded-xl border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#ffc107] w-48 transition placeholder-gray-600"
+                    placeholder="0"
+                    value={baseInput}
+                    onChange={handleBaseChange}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-between items-center py-2.5 border-b border-gray-700/30">
                 <span className="text-gray-400 font-medium">Valor Total Cobrado (Abonos de hoy):</span>
-                <span className="text-green-400 font-bold">{formatearDinero(datosLiquidacion.totalCobrado)}</span>
+                <span className="text-green-400 font-bold">{formatearDinero(totalCobrado)}</span>
               </div>
 
               <div className="flex justify-between items-center py-2.5 border-b border-gray-700/30">
                 <span className="text-gray-400 font-medium">Valor Total Gastos de hoy:</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-red-400 font-bold">{formatearDinero(datosLiquidacion.totalGastos)}</span>
+                  <span className="text-red-400 font-bold">{formatearDinero(totalGastos)}</span>
                   <button 
                     onClick={() => navigate('/gastos')}
                     className="text-xs bg-[#1e2738] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition flex items-center gap-1.5"
@@ -242,12 +265,14 @@ export default function TotalizarVentas() {
 
               <div className="flex justify-between items-center py-2.5 border-b border-gray-700/30">
                 <span className="text-gray-400 font-medium">Valor Créditos Nuevos:</span>
-                <span className="text-amber-400 font-bold">{formatearDinero(datosLiquidacion.creditosNuevos)}</span>
+                <span className="text-amber-400 font-bold">{formatearDinero(creditosNuevos)}</span>
               </div>
 
               <div className="flex justify-between items-center py-3.5 px-4 bg-[#1e2738] rounded-xl border border-gray-700/50 mt-2">
                 <span className="text-gray-200 font-extrabold uppercase tracking-wide">VALOR ESPERADO EN CAJA:</span>
-                <span className="text-xl font-black text-white">{formatearDinero(datosLiquidacion.baseCaja + datosLiquidacion.totalCobrado - datosLiquidacion.totalGastos)}</span>
+                <span className="text-xl font-black text-white">
+                  {formatearDinero((parseInt(baseInput.replace(/\D/g, ''), 10) || 0) + totalCobrado - totalGastos - creditosNuevos)}
+                </span>
               </div>
 
               <div className="flex justify-between items-center py-2.5 border-b border-gray-700/30">
@@ -262,12 +287,16 @@ export default function TotalizarVentas() {
 
               <div className="flex justify-between items-center py-3">
                 <span className="text-gray-300 font-bold">Valor Entregado en Efectivo:</span>
-                <input
-                  type="number"
-                  className="bg-[#151c2c] text-white font-bold text-right px-4 py-2.5 rounded-xl border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#ffc107] w-48"
-                  value={datosLiquidacion.efectivoEntregado}
-                  onChange={(e) => setDatosLiquidacion({...datosLiquidacion, efectivoEntregado: parseFloat(e.target.value) || 0})}
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                  <input
+                    type="text"
+                    className="bg-[#151c2c] text-white font-bold text-right pl-8 pr-4 py-2.5 rounded-xl border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#ffc107] w-48 transition placeholder-gray-600"
+                    placeholder="0"
+                    value={efectivoInput}
+                    onChange={handleEfectivoChange}
+                  />
+                </div>
               </div>
             </div>
           )}

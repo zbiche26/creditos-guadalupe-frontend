@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Calculator, DollarSign, Calendar, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Calculator, DollarSign, Calendar, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import ModalRenovarCredito from '../components/ModalRenovarCredito';
 
 export default function CreditosCliente() {
   const navigate = useNavigate();
@@ -11,21 +12,20 @@ export default function CreditosCliente() {
   // --- ESTADOS ---
   const [saldoActual, setSaldoActual] = useState(0);
   const [prestamosActivos, setPrestamosActivos] = useState<any[]>([]);
-
-  // Pestañas: PAGO o NUEVO
   const [vistaActiva, setVistaActiva] = useState<'PAGO' | 'NUEVO'>('NUEVO');
 
-  // Estado para el formulario de PAGO
   const [montoAbono, setMontoAbono] = useState('');
   const [cuotaSugerida, setCuotaSugerida] = useState(0);
 
-  // Estado para el formulario de NUEVO PRÉSTAMO
+  // NUEVO ESTADO PARA EL PRÉSTAMO (Con inputs de texto para las máscaras)
   const [prestamo, setPrestamo] = useState({
-    monto_prestado: '',
+    montoInput: '',
     tasa_interes: '20',
     modalidad: 'DIARIO',
-    valor_cuota: '',
+    numero_cuotas: '24',
   });
+
+  const [modalRenovarAbierto, setModalRenovarAbierto] = useState(false);
 
   // --- CARGA DE DATOS ---
   const cargarSaldo = async () => {
@@ -34,16 +34,14 @@ export default function CreditosCliente() {
 
       if (response.data.datos && response.data.datos.length > 0) {
         setPrestamosActivos(response.data.datos);
-
-        // Sumamos los saldos si tiene más de un crédito activo
         const totalDeuda = response.data.datos.reduce((sum: number, p: any) => sum + p.saldo_restante, 0);
         setSaldoActual(totalDeuda);
 
-        // Sugerimos el valor de la cuota del crédito más antiguo
-        setCuotaSugerida(response.data.datos[0].valor_cuota);
-        setMontoAbono(response.data.datos[0].valor_cuota.toString());
+        const cuotaReal = response.data.datos[0].valor_cuota;
+        setCuotaSugerida(Math.round(cuotaReal));
+        setMontoAbono(Math.round(cuotaReal).toString());
 
-        setVistaActiva('PAGO'); // Lo pasamos directo a la vista de cobro
+        setVistaActiva('PAGO');
       } else {
         setSaldoActual(0);
         setPrestamosActivos([]);
@@ -62,85 +60,103 @@ export default function CreditosCliente() {
     return (
       <div className="text-white p-8 text-center">
         <p>No se seleccionó ningún cliente.</p>
-        <button onClick={() => navigate('/clientes')} className="text-[#ffc107] mt-4">Volver al Directorio</button>
+        <button onClick={() => navigate('/clientes')} className="text-[#ffc107] mt-4 font-bold hover:underline">
+          Volver al Directorio
+        </button>
       </div>
     );
   }
 
-  // --- FUNCIÓN PARA REGISTRAR PAGO ---
+  // --- FORMATEADORES Y MANEJADORES DE INPUTS ---
+  const formatearDinero = (monto: number) => {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(monto || 0);
+  };
+
+  const handleMontoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const soloNumeros = e.target.value.replace(/\D/g, '');
+    if (!soloNumeros) {
+      setPrestamo({ ...prestamo, montoInput: '' });
+      return;
+    }
+    const numeroFormateado = new Intl.NumberFormat('es-CO').format(parseInt(soloNumeros, 10));
+    setPrestamo({ ...prestamo, montoInput: numeroFormateado });
+  };
+
+  const handleCuotasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const soloNumeros = e.target.value.replace(/\D/g, '');
+    setPrestamo({ ...prestamo, numero_cuotas: soloNumeros ? parseInt(soloNumeros, 10).toString() : '' });
+  };
+
+  // --- CÁLCULOS MATEMÁTICOS EN TIEMPO REAL ---
+  const montoNum = parseInt(prestamo.montoInput.replace(/\./g, '')) || 0;
+  const interesNum = parseFloat(prestamo.tasa_interes) || 0;
+  const cuotasNum = parseInt(prestamo.numero_cuotas) || 0;
+
+  const totalPagarCalculado = montoNum + (montoNum * (interesNum / 100));
+  const valorCuotaCalculado = cuotasNum > 0 ? Math.round(totalPagarCalculado / cuotasNum) : 0;
+
+  // --- REGISTRO DE PAGOS ---
   const handleAbono = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prestamosActivos.length) return;
 
-    // 1. Obtenemos los IDs reales del Login
     const empresaIdReal = localStorage.getItem('empresa_id');
     const cobradorIdReal = localStorage.getItem('usuario_id');
 
-    // Validación de seguridad
     if (!empresaIdReal || !cobradorIdReal) {
       alert("Error: No se encontró la sesión activa. Por favor cierra sesión y vuelve a entrar.");
       return;
     }
 
     try {
-      const payloadAbono = {
+      await api.post('/abonos/', {
         empresa_id: empresaIdReal,
         prestamo_id: prestamosActivos[0].id,
         cobrador_id: cobradorIdReal,
         monto_pagado: parseFloat(montoAbono)
-      };
-
-      await api.post('/abonos/', payloadAbono);
-
+      });
       alert("¡Pago registrado con éxito!");
       setMontoAbono(''); 
       cargarSaldo(); 
-
     } catch (err: any) {
       console.error("Error al procesar pago:", err);
-      alert("Error: " + (err.response?.data?.detail || "Revisa la consola"));
+      alert("Error: " + (err.response?.data?.detail || "Ocurrió un error al registrar el pago"));
     }
   };
 
-  // --- FUNCIÓN PARA REGISTRAR NUEVO CRÉDITO ---
-  const calcularTotal = () => {
-    const monto = parseFloat(prestamo.monto_prestado) || 0;
-    const interes = parseFloat(prestamo.tasa_interes) || 0;
-    return monto + (monto * (interes / 100));
-  };
-
+  // --- REGISTRO DE NUEVO CRÉDITO ---
   const handleSubmitCredito = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. Obtenemos el ID real de la empresa desde el Login
     const empresaIdReal = localStorage.getItem('empresa_id');
-
     if (!empresaIdReal) {
-      alert("Error: No se encontró la sesión activa. Por favor cierra sesión y vuelve a entrar.");
+      alert("Error: No se encontró la sesión activa.");
+      return;
+    }
+
+    if (montoNum <= 0) {
+      alert("El monto prestado debe ser mayor a cero.");
       return;
     }
 
     try {
-      const payloadPrestamo = {
+      await api.post('/prestamos/', {
         empresa_id: empresaIdReal,
         cliente_id: cliente.id,
-        ruta_id: "00000000-0000-0000-0000-000000000000", // Ruta por defecto temporal
-        monto_prestado: parseFloat(prestamo.monto_prestado),
-        tasa_interes: parseFloat(prestamo.tasa_interes),
-        monto_total_pagar: calcularTotal(),
+        ruta_id: "00000000-0000-0000-0000-000000000000",
+        monto_prestado: montoNum,
+        tasa_interes: interesNum,
+        monto_total_pagar: totalPagarCalculado,
         modalidad: prestamo.modalidad,
-        valor_cuota: parseFloat(prestamo.valor_cuota)
-      };
-
-      await api.post('/prestamos/', payloadPrestamo);
+        valor_cuota: valorCuotaCalculado
+      });
 
       alert("¡Crédito adicional registrado con éxito!");
-      setPrestamo({ ...prestamo, monto_prestado: '', valor_cuota: '' }); 
+      setPrestamo({ montoInput: '', tasa_interes: '20', modalidad: 'DIARIO', numero_cuotas: '24' }); 
       cargarSaldo(); 
-
     } catch (err: any) {
       console.error("Error al registrar crédito:", err);
-      alert("Error: " + (err.response?.data?.detail || "Revisa la consola"));
+      alert("Error: " + (err.response?.data?.detail || "Ocurrió un error al registrar el crédito"));
     }
   };
 
@@ -171,9 +187,20 @@ export default function CreditosCliente() {
             {saldoActual > 0 ? 'CON DEUDA' : 'A PAZ Y SALVO'}
           </div>
         </div>
+
+        {saldoActual > 0 && prestamosActivos.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-gray-700/50 flex justify-end">
+            <button
+              onClick={() => setModalRenovarAbierto(true)}
+              className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/40 px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition tracking-wider shadow-sm uppercase"
+            >
+              <RefreshCw size={14} /> Renovar Crédito
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* SISTEMA DE PESTAÑAS (Solo visible si hay deuda) */}
+      {/* SISTEMA DE PESTAÑAS */}
       {saldoActual > 0 && (
         <div className="flex gap-3 mb-6 bg-[#151c2c] p-1.5 rounded-xl border border-gray-700/50">
           <button
@@ -228,7 +255,7 @@ export default function CreditosCliente() {
         </form>
       )}
 
-      {/* MÓDULO DE NUEVO CRÉDITO */}
+      {/* MÓDULO DE NUEVO CRÉDITO REPARADO */}
       {vistaActiva === 'NUEVO' && (
         <form onSubmit={handleSubmitCredito} className="bg-[#242e42] rounded-2xl shadow-xl overflow-hidden border border-gray-700/20">
           <div className="bg-[#1e2738] px-6 py-4 border-b border-gray-700/50 flex items-center gap-2">
@@ -246,17 +273,28 @@ export default function CreditosCliente() {
                   <DollarSign size={18} className="text-gray-500" />
                 </div>
                 <input
-                  type="number"
+                  type="text"
                   required
                   className="w-full bg-[#151c2c] text-white text-lg font-semibold pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffc107] border border-gray-700 placeholder-gray-600 transition"
-                  placeholder="Ej. 500000"
-                  value={prestamo.monto_prestado}
-                  onChange={(e) => setPrestamo({...prestamo, monto_prestado: e.target.value})}
+                  placeholder="Ej. 1.000.000"
+                  value={prestamo.montoInput}
+                  onChange={handleMontoChange}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wide">Interés (%)</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-[#151c2c] text-white text-sm font-semibold px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffc107] border border-gray-700 transition"
+                  value={prestamo.tasa_interes}
+                  onChange={(e) => setPrestamo({...prestamo, tasa_interes: e.target.value.replace(/\D/g, '')})}
+                />
+              </div>
+
               <div>
                 <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wide">Modalidad</label>
                 <div className="relative">
@@ -274,39 +312,55 @@ export default function CreditosCliente() {
                   </select>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wide">Valor Cuota</label>
-                <input
-                  type="number"
-                  required
-                  className="w-full bg-[#151c2c] text-white text-sm font-semibold px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffc107] border border-gray-700 placeholder-gray-600 transition"
-                  placeholder="Ej. 10000"
-                  value={prestamo.valor_cuota}
-                  onChange={(e) => setPrestamo({...prestamo, valor_cuota: e.target.value})}
-                />
-              </div>
+            <div>
+              <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wide">Número de Cuotas</label>
+              <input
+                type="text"
+                required
+                className="w-full bg-[#151c2c] text-white text-sm font-semibold px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffc107] border border-gray-700 placeholder-gray-600 transition"
+                placeholder="Ej. 24"
+                value={prestamo.numero_cuotas}
+                onChange={handleCuotasChange}
+              />
             </div>
 
             <div className="bg-[#151c2c] p-4 rounded-xl border border-[#ffc107]/20 mt-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-400 font-medium">Interés aplicado:</span>
-                <span className="text-white font-bold">{prestamo.tasa_interes}%</span>
+              <div className="flex justify-between items-center text-sm mb-2">
+                <span className="text-gray-400 font-medium">Valor de cuota proyectada:</span>
+                <span className="text-white font-bold">{valorCuotaCalculado > 0 ? formatearDinero(valorCuotaCalculado) : '$ 0'}</span>
               </div>
-              <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-700/50">
+              <div className="flex justify-between items-center pt-2 border-t border-gray-700/50">
                 <span className="text-[#ffc107] font-bold">Total a Cobrar:</span>
-                <span className="text-xl font-black text-white">${calcularTotal().toLocaleString('es-CO')}</span>
+                <span className="text-xl font-black text-white">{totalPagarCalculado > 0 ? formatearDinero(totalPagarCalculado) : '$ 0'}</span>
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full mt-4 bg-[#ffc107] text-[#111927] font-extrabold text-sm py-4 rounded-xl shadow-lg uppercase tracking-widest hover:bg-yellow-400 transition"
+              disabled={montoNum <= 0}
+              className={`w-full mt-4 font-extrabold text-sm py-4 rounded-xl shadow-lg uppercase tracking-widest transition ${
+                montoNum <= 0 ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-[#ffc107] text-[#111927] hover:bg-yellow-400'
+              }`}
             >
               Confirmar Desembolso
             </button>
           </div>
         </form>
+      )}
+
+      {/* RENDERIZAMOS EL MODAL DE RENOVAR */}
+      {prestamosActivos.length > 0 && (
+        <ModalRenovarCredito
+          isOpen={modalRenovarAbierto}
+          onClose={() => setModalRenovarAbierto(false)}
+          creditoActivo={prestamosActivos[0]}
+          onRenovacionExitosa={() => {
+            cargarSaldo();
+            alert("¡Crédito renovado exitosamente!");
+          }}
+        />
       )}
 
     </div>
