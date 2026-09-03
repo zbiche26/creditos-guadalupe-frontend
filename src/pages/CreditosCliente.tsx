@@ -185,7 +185,7 @@ export default function CreditosCliente() {
       alert("Error: " + (err.response?.data?.detail || "Ocurrió un error al registrar el crédito"));
     }
   };
-
+// listo
   return (
     <div className="w-full max-w-xl mx-auto pb-20 font-sans">
       <div className="flex items-center gap-4 mb-6 mt-2">
