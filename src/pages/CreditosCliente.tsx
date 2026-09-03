@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Calculator, DollarSign, Calendar, CheckCircle2, RefreshCw, Clock } from 'lucide-react';
+import { ArrowLeft, Calculator, DollarSign,  CheckCircle2, RefreshCw, Clock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import ModalRenovarCredito from '../components/ModalRenovarCredito';
