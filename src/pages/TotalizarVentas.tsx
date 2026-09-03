@@ -20,14 +20,14 @@ export default function TotalizarVentas() {
   const [vista, setVista] = useState<'liquidar' | 'historial'>('liquidar');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Estados del formulario
-  const [fecha] = useState(new Date().toISOString().split('T')[0]);
-  const [metaRecaudo, setMetaRecaudo] = useState(500000);
+  // Permitimos que la fecha se actualice con lo que diga el backend
+  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [metaRecaudo, setMetaRecaudo] = useState(0);
   const [totalCobrado, setTotalCobrado] = useState(0);
   const [totalGastos, setTotalGastos] = useState(0);
   const [creditosNuevos, setCreditosNuevos] = useState(0);
 
-  // Campos tipeados por el usuario
+  // Estados de entrada como strings para soportar las máscaras
   const [baseInput, setBaseInput] = useState('');
   const [efectivoInput, setEfectivoInput] = useState('');
 
@@ -38,7 +38,6 @@ export default function TotalizarVentas() {
   const [filtroHistorial, setFiltroHistorial] = useState<'dia' | 'semana' | 'mes' | 'todos'>('todos');
   const [isLoadingHistorial, setIsLoadingHistorial] = useState(false);
 
-  // Cargar datos diarios
   useEffect(() => {
     const cargarDatosDiarios = async () => {
       setIsLoading(true);
@@ -46,12 +45,15 @@ export default function TotalizarVentas() {
         const response = await api.get('/liquidacion/diaria');
         const data = response.data;
         
+        // El backend manda la fecha exacta en hora colombiana
+        if (data.fecha) setFecha(data.fecha); 
+
         setMetaRecaudo(data.meta_recaudo || 0);
         setTotalCobrado(data.total_cobrado || 0);
         setTotalGastos(data.total_gastos || 0);
         setCreditosNuevos(data.creditos_nuevos || 0);
 
-        // FÓRMULA MÁGICA: Cobrado - Gastos - Créditos Nuevos
+        // Al iniciar, le aplicamos puntos al efectivo sugerido
         const efectivoSugerido = Math.max(0, (data.total_cobrado || 0) - (data.total_gastos || 0) - (data.creditos_nuevos || 0));
         setEfectivoInput(efectivoSugerido > 0 ? new Intl.NumberFormat('es-CO').format(efectivoSugerido) : '');
 
@@ -67,12 +69,10 @@ export default function TotalizarVentas() {
     }
   }, [vista]);
 
-  // Recálculo dinámico matemático
   useEffect(() => {
-    const baseCajaNum = parseInt(baseInput.replace(/\D/g, ''), 10) || 0;
-    const efectivoNum = parseInt(efectivoInput.replace(/\D/g, ''), 10) || 0;
+    const baseCajaNum = parseInt(baseInput.replace(/\./g, ''), 10) || 0;
+    const efectivoNum = parseInt(efectivoInput.replace(/\./g, ''), 10) || 0;
 
-    // FÓRMULA MATEMÁTICA CORREGIDA EN REACT
     const esperado = baseCajaNum + totalCobrado - totalGastos - creditosNuevos;
     const diferencia = efectivoNum - esperado;
 
@@ -85,7 +85,6 @@ export default function TotalizarVentas() {
     }
   }, [baseInput, efectivoInput, totalCobrado, totalGastos, creditosNuevos]);
 
-  // Manejador de la Base de Caja
   const handleBaseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const soloNumeros = e.target.value.replace(/\D/g, '');
     if (!soloNumeros) {
@@ -93,15 +92,12 @@ export default function TotalizarVentas() {
       setEfectivoInput(new Intl.NumberFormat('es-CO').format(Math.max(0, totalCobrado - totalGastos - creditosNuevos)));
       return;
     }
-    
     const baseCajaNum = parseInt(soloNumeros, 10);
     setBaseInput(new Intl.NumberFormat('es-CO').format(baseCajaNum));
-    
     const nuevoEsperado = Math.max(0, baseCajaNum + totalCobrado - totalGastos - creditosNuevos);
     setEfectivoInput(new Intl.NumberFormat('es-CO').format(nuevoEsperado));
   };
 
-  // Manejador del Efectivo Físico
   const handleEfectivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const soloNumeros = e.target.value.replace(/\D/g, '');
     if (!soloNumeros) {
@@ -137,8 +133,9 @@ export default function TotalizarVentas() {
     const empresaId = localStorage.getItem('empresa_id');
     const cobradorId = localStorage.getItem('usuario_id');
     
-    const baseCajaNum = parseInt(baseInput.replace(/\D/g, ''), 10) || 0;
-    const efectivoNum = parseInt(efectivoInput.replace(/\D/g, ''), 10) || 0;
+    // Le quitamos los puntos para guardar limpios en BD
+    const baseCajaNum = parseInt(baseInput.replace(/\./g, ''), 10) || 0;
+    const efectivoNum = parseInt(efectivoInput.replace(/\./g, ''), 10) || 0;
 
     try {
       await api.post('/liquidaciones/', {
@@ -169,14 +166,9 @@ export default function TotalizarVentas() {
 
   return (
     <div className="w-full max-w-[1100px] mx-auto font-sans pb-12 mt-2">
-      
-      {/* Header y Selector de Vistas */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="text-gray-400 hover:text-white bg-[#1e2738] p-2.5 rounded-full transition shadow-md"
-          >
+          <button onClick={() => navigate('/dashboard')} className="text-gray-400 hover:text-white bg-[#1e2738] p-2.5 rounded-full transition shadow-md">
             <ArrowLeft size={22} />
           </button>
           <div>
@@ -186,35 +178,20 @@ export default function TotalizarVentas() {
         </div>
 
         <div className="flex gap-2 bg-[#1e2738] p-1.5 rounded-xl border border-gray-700/50">
-          <button
-            onClick={() => setVista('liquidar')}
-            className={`px-4 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider transition flex items-center gap-2 ${
-              vista === 'liquidar' ? 'bg-[#ffc107] text-[#111927] shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
+          <button onClick={() => setVista('liquidar')} className={`px-4 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider transition flex items-center gap-2 ${vista === 'liquidar' ? 'bg-[#ffc107] text-[#111927] shadow-md' : 'text-gray-400 hover:text-white'}`}>
             <Calculator size={16} /> Realizar Cierre
           </button>
-          <button
-            onClick={() => setVista('historial')}
-            className={`px-4 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider transition flex items-center gap-2 ${
-              vista === 'historial' ? 'bg-[#ffc107] text-[#111927] shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
+          <button onClick={() => setVista('historial')} className={`px-4 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider transition flex items-center gap-2 ${vista === 'historial' ? 'bg-[#ffc107] text-[#111927] shadow-md' : 'text-gray-400 hover:text-white'}`}>
             <History size={16} /> Historial
           </button>
         </div>
       </div>
 
-      {/* VISTA 1: REALIZAR LIQUIDACIÓN */}
       {vista === 'liquidar' && (
         <div className="bg-[#242e42] rounded-3xl shadow-2xl border border-gray-700/40 overflow-hidden">
           <div className="bg-[#1e2738] px-8 py-5 border-b border-gray-700/50 flex justify-between items-center">
-            <h3 className="text-base font-extrabold text-white uppercase tracking-wider">
-              LIQUIDACIÓN DE COBRO - RUTA 002
-            </h3>
-            <span className="text-xs bg-amber-500/10 text-[#ffc107] border border-amber-500/20 px-3 py-1 rounded-full font-bold">
-              {fecha}
-            </span>
+            <h3 className="text-base font-extrabold text-white uppercase tracking-wider">LIQUIDACIÓN DE COBRO - RUTA 002</h3>
+            <span className="text-xs bg-amber-500/10 text-[#ffc107] border border-amber-500/20 px-3 py-1 rounded-full font-bold">{fecha}</span>
           </div>
 
           {isLoading ? (
@@ -254,10 +231,7 @@ export default function TotalizarVentas() {
                 <span className="text-gray-400 font-medium">Valor Total Gastos de hoy:</span>
                 <div className="flex items-center gap-3">
                   <span className="text-red-400 font-bold">{formatearDinero(totalGastos)}</span>
-                  <button 
-                    onClick={() => navigate('/gastos')}
-                    className="text-xs bg-[#1e2738] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition flex items-center gap-1.5"
-                  >
+                  <button onClick={() => navigate('/gastos')} className="text-xs bg-[#1e2738] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-600 transition flex items-center gap-1.5">
                     <FileText size={14} /> Ver Gastos
                   </button>
                 </div>
@@ -271,7 +245,7 @@ export default function TotalizarVentas() {
               <div className="flex justify-between items-center py-3.5 px-4 bg-[#1e2738] rounded-xl border border-gray-700/50 mt-2">
                 <span className="text-gray-200 font-extrabold uppercase tracking-wide">VALOR ESPERADO EN CAJA:</span>
                 <span className="text-xl font-black text-white">
-                  {formatearDinero((parseInt(baseInput.replace(/\D/g, ''), 10) || 0) + totalCobrado - totalGastos - creditosNuevos)}
+                  {formatearDinero((parseInt(baseInput.replace(/\./g, ''), 10) || 0) + totalCobrado - totalGastos - creditosNuevos)}
                 </span>
               </div>
 
@@ -302,30 +276,18 @@ export default function TotalizarVentas() {
           )}
 
           <div className="p-6 bg-[#1e2738] border-t border-gray-700/50 text-center">
-            <button
-              onClick={handleLiquidar}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-4 rounded-xl shadow-lg shadow-emerald-600/20 uppercase tracking-widest transition flex items-center justify-center gap-2"
-            >
+            <button onClick={handleLiquidar} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-4 rounded-xl shadow-lg shadow-emerald-600/20 uppercase tracking-widest transition flex items-center justify-center gap-2">
               <CheckCircle2 size={20} /> Liquidar Cobro
             </button>
           </div>
         </div>
       )}
 
-      {/* VISTA 2: HISTORIAL */}
       {vista === 'historial' && (
         <div className="space-y-6">
           <div className="flex gap-2">
             {(['dia', 'semana', 'mes', 'todos'] as const).map((tipo) => (
-              <button
-                key={tipo}
-                onClick={() => setFiltroHistorial(tipo)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
-                  filtroHistorial === tipo
-                    ? 'bg-[#ffc107] text-[#111927] shadow-md'
-                    : 'bg-[#242e42] text-gray-400 hover:text-white border border-gray-700/30'
-                }`}
-              >
+              <button key={tipo} onClick={() => setFiltroHistorial(tipo)} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${filtroHistorial === tipo ? 'bg-[#ffc107] text-[#111927] shadow-md' : 'bg-[#242e42] text-gray-400 hover:text-white border border-gray-700/30'}`}>
                 {tipo === 'dia' ? 'Hoy' : tipo === 'semana' ? 'Esta Semana' : tipo === 'mes' ? 'Este Mes' : 'Historial Total'}
               </button>
             ))}
@@ -345,18 +307,13 @@ export default function TotalizarVentas() {
                 </thead>
                 <tbody className="divide-y divide-gray-700/30 text-sm text-white">
                   {isLoadingHistorial ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-12 text-gray-400">Cargando historial...</td>
-                    </tr>
+                    <tr><td colSpan={5} className="text-center py-12 text-gray-400">Cargando historial...</td></tr>
                   ) : historial.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-12 text-gray-400">No hay liquidaciones registradas en este periodo.</td>
-                    </tr>
+                    <tr><td colSpan={5} className="text-center py-12 text-gray-400">No hay liquidaciones registradas en este periodo.</td></tr>
                   ) : (
                     historial.map((item) => {
                       const tieneFaltante = item.valor_faltante > 0;
                       const tieneSobrante = item.valor_sobrante > 0;
-
                       return (
                         <tr key={item.id} className="hover:bg-[#1e2738]/50 transition-colors">
                           <td className="p-4 text-gray-300 font-medium">{item.fecha}</td>
@@ -365,17 +322,11 @@ export default function TotalizarVentas() {
                           <td className="p-4 text-right text-white font-bold">{formatearDinero(item.valor_entregado_efectivo)}</td>
                           <td className="p-4 text-center">
                             {tieneFaltante ? (
-                              <span className="bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                                Faltante: {formatearDinero(item.valor_faltante)}
-                              </span>
+                              <span className="bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded-full text-xs font-bold">Faltante: {formatearDinero(item.valor_faltante)}</span>
                             ) : tieneSobrante ? (
-                              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                                Sobrante: {formatearDinero(item.valor_sobrante)}
-                              </span>
+                              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">Sobrante: {formatearDinero(item.valor_sobrante)}</span>
                             ) : (
-                              <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                                ¡A Paz y Salvo!
-                              </span>
+                              <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full text-xs font-bold">¡A Paz y Salvo!</span>
                             )}
                           </td>
                         </tr>
@@ -388,7 +339,6 @@ export default function TotalizarVentas() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

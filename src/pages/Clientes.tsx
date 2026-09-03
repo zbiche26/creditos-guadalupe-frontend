@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar, RefreshCw } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar, RefreshCw, Clock, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import ModalRenovarCredito from '../components/ModalRenovarCredito';
+import ModalRefinanciarCredito from '../components/ModalRefinanciarCredito';
 
 interface CreditoHistorial {
   id: string;
@@ -13,6 +14,12 @@ interface CreditoHistorial {
   saldo_restante: number;
   modalidad: string;
   estado: string;
+  created_at: string;
+}
+
+interface AbonoItem {
+  id: string;
+  monto_pagado: number;
   created_at: string;
 }
 
@@ -45,8 +52,12 @@ export default function Clientes() {
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   
-  // ESTADO PARA EL MODAL DE RENOVAR DESDE EL DIRECTORIO
+  // ESTADOS PARA LOS MODALES Y PESTAÑAS
   const [modalRenovarAbierto, setModalRenovarAbierto] = useState(false);
+  const [modalRefinanciarAbierto, setModalRefinanciarAbierto] = useState(false);
+  const [pestañaModal, setPestañaModal] = useState<'CREDITOS' | 'ABONOS'>('CREDITOS');
+  const [historialAbonosModal, setHistorialAbonosModal] = useState<AbonoItem[]>([]);
+  const [cargandoAbonos, setCargandoAbonos] = useState(false);
 
   const navigate = useNavigate();
 
@@ -74,10 +85,42 @@ export default function Clientes() {
     fetchClientes();
   }, []);
 
+  // CARGAR ABONOS AL SELECCIONAR CLIENTE
+  useEffect(() => {
+    if (clienteSeleccionado?.id) {
+      cargarAbonosCliente(clienteSeleccionado.id);
+      setPestañaModal('CREDITOS'); // Reiniciar a la pestaña de créditos al abrir
+    } else {
+      setHistorialAbonosModal([]);
+    }
+  }, [clienteSeleccionado]);
+
+  const cargarAbonosCliente = async (clienteId: string) => {
+    setCargandoAbonos(true);
+    try {
+      const resp = await api.get(`/abonos/cliente/${clienteId}`);
+      if (resp.data && resp.data.datos) {
+        setHistorialAbonosModal(resp.data.datos);
+      }
+    } catch (err) {
+      console.error("Error al cargar abonos del cliente:", err);
+    } finally {
+      setCargandoAbonos(false);
+    }
+  };
+
   const formatearFecha = (fechaISO?: string) => {
     if (!fechaISO) return 'N/A';
     const fecha = new Date(fechaISO);
     return `${fecha.getDate()}/${fecha.getMonth() + 1}/${fecha.getFullYear()}`;
+  };
+
+  const formatearFechaHora = (fechaStr: string) => {
+    if (!fechaStr) return '';
+    const fecha = new Date(fechaStr);
+    return fecha.toLocaleDateString('es-CO', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
   };
 
   const formatearDinero = (monto: number) => {
@@ -115,7 +158,7 @@ export default function Clientes() {
     }
   };
 
-  // Buscamos si el cliente seleccionado tiene un crédito activo actualmente para poder renovarlo
+  // Buscamos si el cliente seleccionado tiene un crédito activo actualmente
   const creditoActivoDelCliente = clienteSeleccionado?.historial_creditos?.find(c => c.estado === 'ACTIVO');
 
   return (
@@ -231,7 +274,7 @@ export default function Clientes() {
         </div>
       </div>
 
-      {/* MODAL DE PERFIL E HISTORIAL DE CRÉDITOS */}
+      {/* MODAL DE PERFIL E HISTORIAL DE CRÉDITOS Y ABONOS */}
       {clienteSeleccionado && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-[#0f1522] rounded-2xl w-full max-w-5xl relative shadow-2xl p-6 border border-gray-700/50 my-8">
@@ -246,7 +289,7 @@ export default function Clientes() {
               Perfil del Cliente e Historial
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mb-6">
               {/* Datos Personales */}
               <div className="flex flex-col shadow-lg rounded-xl overflow-hidden border border-gray-600/30">
                 <div className="bg-gray-300 py-2.5 text-center">
@@ -286,15 +329,24 @@ export default function Clientes() {
                       <span className="text-[#ffc107] font-bold">{clienteSeleccionado.numero_credito || 'N/A'}</span>
                     </div>
                     
-                    {/* BOTONES DE ACCIÓN: Renovar y Gestionar */}
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {/* BOTONES DE ACCIÓN: Renovar, Refinanciar y Gestionar */}
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                       {creditoActivoDelCliente && (
-                        <button
-                          onClick={() => setModalRenovarAbierto(true)}
-                          className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/40 px-3 py-2 rounded-full text-xs font-bold transition uppercase tracking-wider flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
-                        >
-                          <RefreshCw size={14} /> Renovar
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setModalRenovarAbierto(true)}
+                            className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/40 px-3 py-2 rounded-full text-xs font-bold transition uppercase tracking-wider flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
+                          >
+                            <RefreshCw size={14} /> Renovar
+                          </button>
+
+                          <button
+                            onClick={() => setModalRefinanciarAbierto(true)}
+                            className="bg-orange-500/20 text-orange-400 border border-orange-500/30 hover:bg-orange-500/40 px-3 py-2 rounded-full text-xs font-bold transition uppercase tracking-wider flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
+                          >
+                            Refinanciar
+                          </button>
+                        </>
                       )}
                       
                       <button 
@@ -340,53 +392,103 @@ export default function Clientes() {
               </div>
             </div>
 
-            {/* SECCIÓN DE HISTORIAL DE CRÉDITOS DENTRO DEL MODAL */}
-            <div className="bg-[#1a2235] rounded-xl p-5 border border-gray-700/40">
-              <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-                <CreditCard size={18} className="text-[#ffc107]" /> Historial de Créditos Registrados
-              </h3>
-
-              {!clienteSeleccionado.historial_creditos || clienteSeleccionado.historial_creditos.length === 0 ? (
-                <p className="text-gray-400 text-xs text-center py-4">No hay registros previos de créditos para este cliente.</p>
-              ) : (
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                  {clienteSeleccionado.historial_creditos.map((credito, idx) => (
-                    <div key={credito.id || idx} className="bg-[#151c2c] rounded-xl p-3.5 border border-gray-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">
-                            {credito.codigo_credito || credito.numero_credito || `Crédito #${idx + 1}`}
-                          </span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold uppercase border ${
-                            credito.estado === 'ACTIVO' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                          }`}>
-                            {credito.estado}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400 flex items-center gap-1">
-                          <Calendar size={12} /> Modalidad: <span className="text-white font-medium">{credito.modalidad}</span>
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3 text-right w-full sm:w-auto bg-[#1a2235] p-2.5 rounded-lg border border-gray-700/30 text-xs">
-                        <div>
-                          <p className="text-[9px] uppercase text-gray-400 font-bold">Prestado</p>
-                          <p className="text-white font-semibold">{formatearDinero(credito.monto_prestado)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] uppercase text-gray-400 font-bold">Total a Pagar</p>
-                          <p className="text-amber-400 font-semibold">{formatearDinero(credito.monto_total_pagar)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] uppercase text-gray-400 font-bold">Saldo Restante</p>
-                          <p className="text-red-400 font-bold">{formatearDinero(credito.saldo_restante)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* --- SISTEMA DE PESTAÑAS (TABS) --- */}
+            <div className="flex gap-2 mb-4 bg-[#1a2235] p-1.5 rounded-xl border border-gray-700/50 w-fit">
+              <button
+                onClick={() => setPestañaModal('CREDITOS')}
+                className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 ${
+                  pestañaModal === 'CREDITOS' ? 'bg-[#ffc107] text-[#111927] shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <CreditCard size={16} /> Créditos
+              </button>
+              <button
+                onClick={() => setPestañaModal('ABONOS')}
+                className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 ${
+                  pestañaModal === 'ABONOS' ? 'bg-green-500 text-[#111927] shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <DollarSign size={16} /> Pagos (Abonos)
+              </button>
             </div>
+
+            {/* CONTENIDO PESTAÑA: CRÉDITOS */}
+            {pestañaModal === 'CREDITOS' && (
+              <div className="bg-[#1a2235] rounded-xl p-5 border border-gray-700/40">
+                {!clienteSeleccionado.historial_creditos || clienteSeleccionado.historial_creditos.length === 0 ? (
+                  <p className="text-gray-400 text-xs text-center py-4">No hay registros previos de créditos para este cliente.</p>
+                ) : (
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    {clienteSeleccionado.historial_creditos.map((credito, idx) => (
+                      <div key={credito.id || idx} className="bg-[#151c2c] rounded-xl p-3.5 border border-gray-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-sm">
+                              {credito.codigo_credito || credito.numero_credito || `Crédito #${idx + 1}`}
+                            </span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold uppercase border ${
+                              credito.estado === 'ACTIVO' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                            }`}>
+                              {credito.estado}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400 flex items-center gap-1">
+                            <Calendar size={12} /> Modalidad: <span className="text-white font-medium">{credito.modalidad}</span>
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3 text-right w-full sm:w-auto bg-[#1a2235] p-2.5 rounded-lg border border-gray-700/30 text-xs">
+                          <div>
+                            <p className="text-[9px] uppercase text-gray-400 font-bold">Prestado</p>
+                            <p className="text-white font-semibold">{formatearDinero(credito.monto_prestado)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase text-gray-400 font-bold">Total a Pagar</p>
+                            <p className="text-amber-400 font-semibold">{formatearDinero(credito.monto_total_pagar)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase text-gray-400 font-bold">Saldo Restante</p>
+                            <p className="text-red-400 font-bold">{formatearDinero(credito.saldo_restante)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* CONTENIDO PESTAÑA: ABONOS */}
+            {pestañaModal === 'ABONOS' && (
+              <div className="bg-[#1a2235] rounded-xl p-5 border border-gray-700/40">
+                {cargandoAbonos ? (
+                  <p className="text-gray-400 text-xs text-center py-8">Cargando pagos...</p>
+                ) : historialAbonosModal.length === 0 ? (
+                  <p className="text-gray-400 text-xs text-center py-8">Este cliente aún no registra abonos.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2">
+                    {historialAbonosModal.map((abono) => (
+                      <div key={abono.id} className="bg-[#151c2c] rounded-xl p-4 border border-green-500/20 flex justify-between items-center hover:bg-[#1a2235] transition">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-green-500/10 p-2.5 rounded-xl border border-green-500/30 text-green-400">
+                            <DollarSign size={18} />
+                          </div>
+                          <div>
+                            <p className="text-white font-bold text-lg leading-tight">{formatearDinero(abono.monto_pagado)}</p>
+                            <p className="text-gray-400 text-[11px] flex items-center gap-1 mt-0.5">
+                              <Clock size={10} /> {formatearFechaHora(abono.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] bg-green-500/20 text-green-400 font-bold px-2 py-1 rounded-md border border-green-500/30">
+                          COMPLETADO
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
         </div>
@@ -399,9 +501,24 @@ export default function Clientes() {
           onClose={() => setModalRenovarAbierto(false)}
           creditoActivo={creditoActivoDelCliente}
           onRenovacionExitosa={() => {
-            fetchClientes(); // Actualizamos la tabla
-            setClienteSeleccionado(null); // Cerramos el perfil para forzar actualización visual limpia
+            fetchClientes(); 
+            setClienteSeleccionado(null); 
             alert("¡Crédito renovado exitosamente!");
+          }}
+        />
+      )}
+
+      {/* RENDERIZAMOS EL MODAL DE REFINANCIAR */}
+      {creditoActivoDelCliente && clienteSeleccionado?.id && (
+        <ModalRefinanciarCredito
+          isOpen={modalRefinanciarAbierto}
+          onClose={() => setModalRefinanciarAbierto(false)}
+          creditoActivo={creditoActivoDelCliente}
+          clienteId={clienteSeleccionado.id}
+          onRefinanciacionExitosa={() => {
+            fetchClientes(); 
+            setClienteSeleccionado(null); 
+            alert("¡Crédito refinanciado con éxito!");
           }}
         />
       )}
