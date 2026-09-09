@@ -37,7 +37,9 @@ export default function Login() {
         localStorage.setItem('usuario_email', email); 
         localStorage.setItem('usuario_id', response.data.usuario.id);
         localStorage.setItem('empresa_id', response.data.usuario.empresa_id);
-        localStorage.setItem('usuario_rol', response.data.usuario.rol);
+        
+        // AQUÍ GUARDAMOS EL ROL QUE AHORA SÍ ENVÍA EL BACKEND
+        localStorage.setItem('usuario_rol', response.data.usuario.rol); 
         
         // Manejo de la opción Recordar Contraseña
         if (rememberMe) {
@@ -106,7 +108,7 @@ export default function Login() {
                 Contraseña
               </label>
               <a href="#" className="text-slate-400 text-xs hover:text-[#152D57] hover:underline transition">
-                Olvidó su contraseña?
+                ¿Olvidó su contraseña?
               </a>
             </div>
             <input

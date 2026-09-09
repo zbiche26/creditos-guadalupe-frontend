@@ -61,6 +61,10 @@ export default function Clientes() {
 
   const navigate = useNavigate();
 
+  // VERIFICACIÓN DE SEGURIDAD (¿Es Administrador?)
+  const usuarioRol = localStorage.getItem('usuario_rol') || 'COBRADOR';
+  const isAdmin = usuarioRol === 'ADMIN';
+
   const fetchClientes = async () => {
     setIsLoading(true);
     setError('');
@@ -168,12 +172,15 @@ export default function Clientes() {
       <div className="flex justify-between items-center mb-6 mt-2">
         <h2 className="text-[26px] font-bold text-white tracking-wide">Directorio de Clientes</h2>
 
-        <button
-          onClick={() => navigate('/clientes/nuevos')}
-          className="bg-[#ffc107] text-[#111927] font-bold py-2.5 px-6 rounded-full hover:bg-yellow-400 transition shadow-lg flex items-center gap-2 text-sm"
-        >
-          <Plus size={18} strokeWidth={3} /> Crear Cliente
-        </button>
+        {/* SOLO SE MUESTRA SI ES ADMIN */}
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/clientes/nuevos')}
+            className="bg-[#ffc107] text-[#111927] font-bold py-2.5 px-6 rounded-full hover:bg-yellow-400 transition shadow-lg flex items-center gap-2 text-sm"
+          >
+            <Plus size={18} strokeWidth={3} /> Crear Cliente
+          </button>
+        )}
       </div>
 
       {/* Tabla Expandida */}
@@ -331,7 +338,9 @@ export default function Clientes() {
                     
                     {/* BOTONES DE ACCIÓN: Renovar, Refinanciar y Gestionar */}
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                      {creditoActivoDelCliente && (
+                      
+                      {/* SOLO EL ADMIN PUEDE RENOVAR O REFINANCIAR */}
+                      {creditoActivoDelCliente && isAdmin && (
                         <>
                           <button
                             onClick={() => setModalRenovarAbierto(true)}
@@ -353,7 +362,7 @@ export default function Clientes() {
                         onClick={() => navigate(`/clientes/${clienteSeleccionado.id}/creditos`, { state: { cliente: clienteSeleccionado } })}
                         className="bg-[#ffc107] text-[#111927] font-bold text-xs px-5 py-2.5 rounded-full shadow-lg uppercase hover:bg-yellow-400 transition flex-1 sm:flex-none text-center"
                       >
-                        Gestionar
+                        {isAdmin ? 'Gestionar' : 'Abonar'}
                       </button>
                     </div>
                   </div>
