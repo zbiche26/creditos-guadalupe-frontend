@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Calculator, DollarSign,  CheckCircle2, RefreshCw, Clock } from 'lucide-react';
+import { ArrowLeft, Calculator, DollarSign, CheckCircle2, RefreshCw, Clock, MessageSquare } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import ModalRenovarCredito from '../components/ModalRenovarCredito';
@@ -20,9 +20,9 @@ export default function CreditosCliente() {
   const [historialAbonos, setHistorialAbonos] = useState<AbonoItem[]>([]);
   const [vistaActiva, setVistaActiva] = useState<'PAGO' | 'NUEVO'>('NUEVO');
 
-  // Input de abono con máscara (Texto en vez de número para que soporte puntos)
   const [abonoInput, setAbonoInput] = useState('');
   const [cuotaSugerida, setCuotaSugerida] = useState(0);
+  const [enviarReciboAutomatico, setEnviarReciboAutomatico] = useState(true);
 
   const [prestamo, setPrestamo] = useState({
     montoInput: '',
@@ -33,9 +33,24 @@ export default function CreditosCliente() {
 
   const [modalRenovarAbierto, setModalRenovarAbierto] = useState(false);
 
+  // --- CONFIGURACIÓN DINÁMICA DE PAÍS CON BRASIL AÑADIDO ---
+  const obtenerConfigPais = () => {
+    const pais = localStorage.getItem('pais_sistema') || 'CO';
+    if (pais === 'MX') return { locale: 'es-MX', currency: 'MXN' };
+    if (pais === 'US') return { locale: 'en-US', currency: 'USD' };
+    if (pais === 'PE') return { locale: 'es-PE', currency: 'PEN' };
+    if (pais === 'AR') return { locale: 'es-AR', currency: 'ARS' };
+    if (pais === 'BR') return { locale: 'pt-BR', currency: 'BRL' }; // BRASIL
+    return { locale: 'es-CO', currency: 'COP' };
+  };
+
+  const formatearDinero = (monto: number) => {
+    const { locale, currency } = obtenerConfigPais();
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: currency, maximumFractionDigits: 0 }).format(monto || 0);
+  };
+
   const cargarDatosCliente = async () => {
     try {
-      // 1. Cargar el préstamo
       const response = await api.get(`/prestamos/cliente/${cliente.id}`);
 
       if (response.data.datos && response.data.datos.length > 0) {
@@ -46,7 +61,9 @@ export default function CreditosCliente() {
         const cuotaReal = response.data.datos[0].valor_cuota;
         const cuotaRedondeada = Math.round(cuotaReal);
         setCuotaSugerida(cuotaRedondeada);
-        setAbonoInput(new Intl.NumberFormat('es-CO').format(cuotaRedondeada));
+        
+        const { locale } = obtenerConfigPais();
+        setAbonoInput(new Intl.NumberFormat(locale).format(cuotaRedondeada));
 
         setVistaActiva('PAGO');
       } else {
@@ -55,7 +72,6 @@ export default function CreditosCliente() {
         setVistaActiva('NUEVO');
       }
 
-      // 2. Cargar historial de abonos
       const respAbonos = await api.get(`/abonos/cliente/${cliente.id}`);
       if (respAbonos.data && respAbonos.data.datos) {
         setHistorialAbonos(respAbonos.data.datos);
@@ -81,11 +97,7 @@ export default function CreditosCliente() {
     );
   }
 
-  const formatearDinero = (monto: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(monto || 0);
-  };
-
-  const formatearFecha = (fechaStr: string) => {
+  const formatearFechaHora = (fechaStr: string) => {
     if (!fechaStr) return '';
     const fecha = new Date(fechaStr);
     return fecha.toLocaleDateString('es-CO', {
@@ -93,14 +105,21 @@ export default function CreditosCliente() {
     });
   };
 
-  // --- MÁSCARAS DE INPUTS (La magia de los puntos) ---
+  const generarReciboWhatsApp = (montoPagado: number, fechaStr?: string) => {
+    const fechaMostrar = fechaStr ? formatearFechaHora(fechaStr) : new Date().toLocaleDateString('es-CO') + " " + new Date().toLocaleTimeString('es-CO');
+    const textoRecibo = `🧾 *RECIBO DE PAGO* 🧾\n\n🏢 *Sistema Contawar*\n👤 *Cliente:* ${cliente.nombre_completo}\n💳 *Cédula:* ${cliente.documento_identidad}\n💲 *Monto Pagado:* ${formatearDinero(montoPagado)}\n📅 *Fecha:* ${fechaMostrar}\n\n✅ _¡Gracias por su pago!_`;
+    const urlWhatsApp = `https://wa.me/?text=${encodeURIComponent(textoRecibo)}`;
+    window.open(urlWhatsApp, '_blank');
+  };
+
   const handleAbonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const soloNumeros = e.target.value.replace(/\D/g, '');
     if (!soloNumeros) {
       setAbonoInput('');
       return;
     }
-    setAbonoInput(new Intl.NumberFormat('es-CO').format(parseInt(soloNumeros, 10)));
+    const { locale } = obtenerConfigPais();
+    setAbonoInput(new Intl.NumberFormat(locale).format(parseInt(soloNumeros, 10)));
   };
 
   const handleMontoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,22 +128,21 @@ export default function CreditosCliente() {
       setPrestamo({ ...prestamo, montoInput: '' });
       return;
     }
-    setPrestamo({ ...prestamo, montoInput: new Intl.NumberFormat('es-CO').format(parseInt(soloNumeros, 10)) });
+    const { locale } = obtenerConfigPais();
+    setPrestamo({ ...prestamo, montoInput: new Intl.NumberFormat(locale).format(parseInt(soloNumeros, 10)) });
   };
 
   const handleCuotasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPrestamo({ ...prestamo, numero_cuotas: e.target.value.replace(/\D/g, '') });
   };
 
-  // Cálculos matemáticos en vivo quitando los puntos antes de operar
-  const montoNum = parseInt(prestamo.montoInput.replace(/\./g, ''), 10) || 0;
+  const montoNum = parseInt(prestamo.montoInput.replace(/\./g, '').replace(/,/g, ''), 10) || 0;
   const interesNum = parseFloat(prestamo.tasa_interes) || 0;
   const cuotasNum = parseInt(prestamo.numero_cuotas, 10) || 0;
 
   const totalPagarCalculado = montoNum + (montoNum * (interesNum / 100));
   const valorCuotaCalculado = cuotasNum > 0 ? Math.round(totalPagarCalculado / cuotasNum) : 0;
 
-  // --- REGISTRO DE PAGOS ---
   const handleAbono = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prestamosActivos.length) return;
@@ -132,8 +150,7 @@ export default function CreditosCliente() {
     const empresaIdReal = localStorage.getItem('empresa_id');
     const cobradorIdReal = localStorage.getItem('usuario_id');
     
-    // Le quitamos los puntos al valor final antes de enviar a Supabase
-    const montoReal = parseInt(abonoInput.replace(/\./g, ''), 10) || 0;
+    const montoReal = parseInt(abonoInput.replace(/\./g, '').replace(/,/g, ''), 10) || 0;
 
     if (montoReal <= 0) {
       alert("El monto del abono debe ser mayor a cero.");
@@ -147,7 +164,13 @@ export default function CreditosCliente() {
         cobrador_id: cobradorIdReal || "00000000-0000-0000-0000-000000000000",
         monto_pagado: montoReal
       });
+      
       alert("¡Pago registrado con éxito!");
+
+      if (enviarReciboAutomatico) {
+        generarReciboWhatsApp(montoReal);
+      }
+
       setAbonoInput(''); 
       cargarDatosCliente(); 
     } catch (err: any) {
@@ -185,7 +208,7 @@ export default function CreditosCliente() {
       alert("Error: " + (err.response?.data?.detail || "Ocurrió un error al registrar el crédito"));
     }
   };
-// listo
+
   return (
     <div className="w-full max-w-xl mx-auto pb-20 font-sans">
       <div className="flex items-center gap-4 mb-6 mt-2">
@@ -225,7 +248,6 @@ export default function CreditosCliente() {
         </div>
       )}
 
-      {/* MÓDULO PAGO CON INPUT DE TEXTO */}
       {vistaActiva === 'PAGO' && saldoActual > 0 && (
         <form onSubmit={handleAbono} className="bg-[#242e42] rounded-2xl shadow-xl overflow-hidden border border-green-500/20 mb-8">
           <div className="bg-[#1e2738] px-6 py-4 border-b border-gray-700/50 flex items-center gap-2">
@@ -236,7 +258,7 @@ export default function CreditosCliente() {
             <p className="text-center text-gray-400 text-sm mb-4">
               Valor sugerido de cuota: <strong className="text-white">{formatearDinero(cuotaSugerida)}</strong>
             </p>
-            <div className="relative mb-6">
+            <div className="relative mb-4">
               <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
                 <DollarSign size={24} className="text-green-500" />
               </div>
@@ -249,6 +271,20 @@ export default function CreditosCliente() {
                 onChange={handleAbonoChange}
               />
             </div>
+            
+            <div className="flex items-center gap-2 mb-6 justify-center">
+              <input 
+                type="checkbox" 
+                id="whatsapp-check"
+                checked={enviarReciboAutomatico}
+                onChange={(e) => setEnviarReciboAutomatico(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-[#25D366] focus:ring-[#25D366] cursor-pointer"
+              />
+              <label htmlFor="whatsapp-check" className="text-gray-300 text-xs font-medium cursor-pointer flex items-center gap-1.5">
+                <MessageSquare size={14} className="text-[#25D366]" /> Enviar recibo por WhatsApp al guardar
+              </label>
+            </div>
+
             <button type="submit" className="w-full bg-green-500 text-[#111927] font-extrabold text-sm py-4 rounded-xl shadow-lg shadow-green-500/20 uppercase tracking-widest hover:bg-green-400 transition">
               Aplicar Abono
             </button>
@@ -256,7 +292,6 @@ export default function CreditosCliente() {
         </form>
       )}
 
-      {/* MÓDULO NUEVO CRÉDITO */}
       {vistaActiva === 'NUEVO' && (
         <form onSubmit={handleSubmitCredito} className="bg-[#242e42] rounded-2xl shadow-xl overflow-hidden border border-gray-700/20 mb-8">
           <div className="bg-[#1e2738] px-6 py-4 border-b border-gray-700/50 flex items-center gap-2">
@@ -313,7 +348,6 @@ export default function CreditosCliente() {
         </form>
       )}
 
-      {/* HISTORIAL DE ABONOS */}
       <div className="bg-[#242e42] rounded-2xl shadow-xl overflow-hidden border border-gray-700/30">
         <div className="bg-[#1e2738] px-6 py-4 border-b border-gray-700/50 flex items-center justify-between">
           <h3 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
@@ -333,10 +367,23 @@ export default function CreditosCliente() {
                   <div className="bg-green-500/10 p-2.5 rounded-xl border border-green-500/20 text-green-400"><DollarSign size={18} /></div>
                   <div>
                     <p className="text-white font-bold">{formatearDinero(abono.monto_pagado)}</p>
-                    <p className="text-gray-400 text-xs">{formatearFecha(abono.created_at)}</p>
+                    <p className="text-gray-400 text-xs">{formatearFechaHora(abono.created_at)}</p>
                   </div>
                 </div>
-                <span className="text-xs bg-green-500/20 text-green-400 font-bold px-2.5 py-1 rounded-full border border-green-500/30">Registrado</span>
+                
+                <div className="flex flex-col items-end gap-1.5">
+                  <span className="text-[9px] bg-green-500/20 text-green-400 font-bold px-2 py-0.5 rounded-md border border-green-500/30 text-center w-full">
+                    REGISTRADO
+                  </span>
+                  <button
+                    onClick={() => generarReciboWhatsApp(abono.monto_pagado, abono.created_at)}
+                    className="flex items-center gap-1 text-[10px] bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 px-2 py-1 rounded-md transition font-bold uppercase w-full justify-center"
+                    title="Enviar recibo por WhatsApp"
+                  >
+                    <MessageSquare size={10} /> Recibo
+                  </button>
+                </div>
+
               </div>
             ))
           )}

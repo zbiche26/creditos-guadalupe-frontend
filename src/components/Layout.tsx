@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight, LogOut, AlertCircle, CreditCard, Menu, X } from 'lucide-react';
+import { LayoutGrid, Users, TrendingUp, DollarSign, Coins, Map, Calendar, Settings, Search, Bell, ChevronDown, ChevronRight, LogOut, AlertCircle, CreditCard, Menu, X, MapPin } from 'lucide-react';
 import logo from '../assets/logo.png';
 import api from '../services/api';
+import SelectorPais from './SelectorPais';
 
 export default function Layout() {
   const location = useLocation();
@@ -20,7 +21,7 @@ export default function Layout() {
   const [resultadosBusqueda, setResultadosBusqueda] = useState<any[]>([]);
   const [showResultados, setShowResultados] = useState(false);
 
-  // Estados para Notificaciones
+  // Estados para Notificaciones INTELIGENTES
   const [notifOpen, setNotifOpen] = useState(false);
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
 
@@ -39,15 +40,32 @@ export default function Layout() {
       setUserRole('ADMIN'); 
     }
 
+    // --- NUEVO SISTEMA DE NOTIFICACIONES DE COBROS ---
     const cargarNotificaciones = async () => {
       try {
         const respuesta = await api.get('/clientes/');
         const listaClientes = respuesta.data.datos || [];
-        setNotificaciones(listaClientes.slice(-4).reverse());
+        
+        // Filtramos SOLO los clientes que deben pagar hoy o están atrasados
+        const clientesPendientes = listaClientes.filter((c: any) => 
+          c.estado_credito === 'MORA' || 
+          c.estado_credito === 'PROXIMO' || 
+          c.estado_credito === 'PRÓXIMO A PAGAR'
+        );
+
+        // Los ordenamos para que los que están en MORA salgan de primeros arriba
+        clientesPendientes.sort((a: any, b: any) => {
+          if (a.estado_credito === 'MORA' && b.estado_credito !== 'MORA') return -1;
+          if (a.estado_credito !== 'MORA' && b.estado_credito === 'MORA') return 1;
+          return 0;
+        });
+
+        setNotificaciones(clientesPendientes);
       } catch (error) {
         console.error("Error al cargar notificaciones:", error);
       }
     };
+    
     cargarNotificaciones();
   }, []);
 
@@ -105,7 +123,7 @@ export default function Layout() {
         />
       )}
 
-      {/* Barra lateral izquierda con el nuevo color #152D57 */}
+      {/* Barra lateral izquierda */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-[260px] bg-[#152D57] flex flex-col shadow-2xl overflow-y-auto
         transform transition-transform duration-300 ease-in-out
@@ -238,7 +256,7 @@ export default function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden relative w-full">
-        {/* Barra de arriba con el nuevo color #152D57 */}
+        {/* Barra superior */}
         <header className="h-[76px] flex items-center justify-between px-4 md:px-8 bg-[#152D57] border-b border-white/5 shadow-sm z-30">
           
           <div className="flex items-center gap-2 md:gap-4 flex-1">
@@ -287,6 +305,8 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3 md:gap-6 relative">
+            
+            {/* CAMPANA DE NOTIFICACIONES ACTUALIZADA */}
             <div className="relative">
               <div 
                 onClick={() => setNotifOpen(!notifOpen)}
@@ -301,26 +321,58 @@ export default function Layout() {
               </div>
 
               {notifOpen && (
-                <div className="absolute right-[-40px] md:right-0 mt-3 w-[260px] md:w-72 bg-[#242e42] border border-gray-700 rounded-2xl shadow-2xl py-3 px-4 z-50">
-                  <h4 className="text-xs font-bold uppercase text-gray-400 mb-2 border-b border-gray-700 pb-1 flex justify-between items-center">
-                    <span>Notificaciones Recientes</span>
+                <div className="absolute right-[-40px] md:right-0 mt-3 w-[300px] bg-[#242e42] border border-gray-700 rounded-2xl shadow-2xl py-3 px-4 z-50">
+                  <h4 className="text-xs font-bold uppercase text-gray-400 mb-3 border-b border-gray-700 pb-2 flex justify-between items-center">
+                    <span>Ruta de Cobro (Hoy)</span>
+                    <span className="bg-[#ffc107]/20 text-[#ffc107] px-2 py-0.5 rounded-full text-[10px]">
+                      {notificaciones.length} pendientes
+                    </span>
                   </h4>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {notificaciones.map((n, i) => (
-                      <div key={i} className="bg-[#151c2c] p-2.5 rounded-xl border border-gray-700/50 text-xs">
-                        <p className="font-semibold text-guadalupe-amarillo">Cliente Registrado</p>
-                        <p className="text-white font-medium truncate">{n.nombre_completo}</p>
-                        <p className="text-[10px] text-gray-400">CC: {n.documento_identidad}</p>
+                  <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                    
+                    {notificaciones.length === 0 ? (
+                      <div className="text-center py-6">
+                        <p className="text-green-400 font-bold mb-1">¡Todo al día! 🎉</p>
+                        <p className="text-gray-400 text-xs">No hay cobros pendientes para hoy.</p>
                       </div>
-                    ))}
+                    ) : (
+                      notificaciones.map((n, i) => (
+                        <div 
+                          key={i} 
+                          onClick={() => {
+                            setNotifOpen(false);
+                            // Al dar clic, navegamos directo a la pantalla de pago de ese cliente
+                            navigate(`/clientes/${n.id}/creditos`, { state: { cliente: n } });
+                          }}
+                          className={`p-3 rounded-xl border transition cursor-pointer hover:bg-[#2a354a] flex flex-col gap-1 ${
+                            n.estado_credito === 'MORA' ? 'bg-red-500/5 border-red-500/20' : 'bg-[#151c2c] border-gray-700/50'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <p className={`text-[10px] font-black uppercase tracking-wider ${n.estado_credito === 'MORA' ? 'text-red-400' : 'text-yellow-400'}`}>
+                              {n.estado_credito === 'MORA' ? '⚠️ ALERTA DE MORA' : '⏰ COBRO PROGRAMADO'}
+                            </p>
+                            {n.dias_mora > 0 && (
+                              <span className="text-[9px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">
+                                {n.dias_mora} días
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-white text-sm font-semibold truncate leading-tight">{n.nombre_completo}</p>
+                          <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+                            <MapPin size={10} /> {n.direccion} {n.barrio ? `- ${n.barrio}` : ''}
+                          </p>
+                        </div>
+                      ))
+                    )}
+
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="hidden sm:flex items-center gap-2 cursor-pointer bg-white/10 px-4 py-1.5 rounded-full border border-white/5 hover:bg-white/20 transition">
-              <img src="https://flagcdn.com/w20/co.png" alt="CO" className="w-5 h-4 rounded-sm object-cover shadow-sm" />
-              <span className="text-sm font-semibold text-guadalupe-blanco flex items-center gap-1">Colombia <ChevronDown size={14} /></span>
+            <div className="hidden sm:block">
+              <SelectorPais />
             </div>
 
             <div className="relative">

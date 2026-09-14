@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar, RefreshCw, Clock, DollarSign } from 'lucide-react';
+import { User, Plus, MapPin, Phone, CreditCard, Eye, X, Map, Calendar, RefreshCw, Clock, DollarSign, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import ModalRenovarCredito from '../components/ModalRenovarCredito';
@@ -52,7 +52,6 @@ export default function Clientes() {
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   
-  // ESTADOS PARA LOS MODALES Y PESTAÑAS
   const [modalRenovarAbierto, setModalRenovarAbierto] = useState(false);
   const [modalRefinanciarAbierto, setModalRefinanciarAbierto] = useState(false);
   const [pestañaModal, setPestañaModal] = useState<'CREDITOS' | 'ABONOS'>('CREDITOS');
@@ -61,7 +60,6 @@ export default function Clientes() {
 
   const navigate = useNavigate();
 
-  // VERIFICACIÓN DE SEGURIDAD (¿Es Administrador?)
   const usuarioRol = localStorage.getItem('usuario_rol') || 'COBRADOR';
   const isAdmin = usuarioRol === 'ADMIN';
 
@@ -89,11 +87,10 @@ export default function Clientes() {
     fetchClientes();
   }, []);
 
-  // CARGAR ABONOS AL SELECCIONAR CLIENTE
   useEffect(() => {
     if (clienteSeleccionado?.id) {
       cargarAbonosCliente(clienteSeleccionado.id);
-      setPestañaModal('CREDITOS'); // Reiniciar a la pestaña de créditos al abrir
+      setPestañaModal('CREDITOS'); 
     } else {
       setHistorialAbonosModal([]);
     }
@@ -127,8 +124,26 @@ export default function Clientes() {
     });
   };
 
+  // --- LÓGICA DINÁMICA DE MONEDA CON BRASIL AÑADIDO ---
   const formatearDinero = (monto: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(monto || 0);
+    const pais = localStorage.getItem('pais_sistema') || 'CO';
+    let locale = 'es-CO';
+    let currency = 'COP';
+
+    if (pais === 'MX') { locale = 'es-MX'; currency = 'MXN'; }
+    else if (pais === 'US') { locale = 'en-US'; currency = 'USD'; }
+    else if (pais === 'PE') { locale = 'es-PE'; currency = 'PEN'; }
+    else if (pais === 'AR') { locale = 'es-AR'; currency = 'ARS'; }
+    else if (pais === 'BR') { locale = 'pt-BR'; currency = 'BRL'; } // BRASIL
+    
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: currency, maximumFractionDigits: 0 }).format(monto || 0);
+  };
+
+  const generarReciboWhatsApp = (abono: AbonoItem) => {
+    if (!clienteSeleccionado) return;
+    const textoRecibo = `🧾 *RECIBO DE PAGO* 🧾\n\n🏢 *Sistema Contawar*\n👤 *Cliente:* ${clienteSeleccionado.nombre_completo}\n💳 *Cédula:* ${clienteSeleccionado.documento_identidad}\n💲 *Monto Pagado:* ${formatearDinero(abono.monto_pagado)}\n📅 *Fecha:* ${formatearFechaHora(abono.created_at)}\n\n✅ _¡Gracias por su pago!_`;
+    const urlWhatsApp = `https://wa.me/?text=${encodeURIComponent(textoRecibo)}`;
+    window.open(urlWhatsApp, '_blank');
   };
 
   const renderEstadoBadge = (estado_credito: string, diasMora: number = 0) => {
@@ -162,17 +177,13 @@ export default function Clientes() {
     }
   };
 
-  // Buscamos si el cliente seleccionado tiene un crédito activo actualmente
   const creditoActivoDelCliente = clienteSeleccionado?.historial_creditos?.find(c => c.estado === 'ACTIVO');
 
   return (
     <div className="w-full max-w-[1400px] mx-auto font-sans pb-10">
 
-      {/* Encabezado */}
       <div className="flex justify-between items-center mb-6 mt-2">
         <h2 className="text-[26px] font-bold text-white tracking-wide">Directorio de Clientes</h2>
-
-        {/* SOLO SE MUESTRA SI ES ADMIN */}
         {isAdmin && (
           <button
             onClick={() => navigate('/clientes/nuevos')}
@@ -183,7 +194,6 @@ export default function Clientes() {
         )}
       </div>
 
-      {/* Tabla Expandida */}
       <div className="bg-[#242e42] rounded-xl overflow-hidden shadow-md border border-gray-700/20">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap">
@@ -281,7 +291,6 @@ export default function Clientes() {
         </div>
       </div>
 
-      {/* MODAL DE PERFIL E HISTORIAL DE CRÉDITOS Y ABONOS */}
       {clienteSeleccionado && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-[#0f1522] rounded-2xl w-full max-w-5xl relative shadow-2xl p-6 border border-gray-700/50 my-8">
@@ -297,7 +306,6 @@ export default function Clientes() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mb-6">
-              {/* Datos Personales */}
               <div className="flex flex-col shadow-lg rounded-xl overflow-hidden border border-gray-600/30">
                 <div className="bg-gray-300 py-2.5 text-center">
                   <h3 className="text-[#111927] font-black text-[15px] uppercase tracking-widest">
@@ -336,10 +344,7 @@ export default function Clientes() {
                       <span className="text-[#ffc107] font-bold">{clienteSeleccionado.numero_credito || 'N/A'}</span>
                     </div>
                     
-                    {/* BOTONES DE ACCIÓN: Renovar, Refinanciar y Gestionar */}
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                      
-                      {/* SOLO EL ADMIN PUEDE RENOVAR O REFINANCIAR */}
                       {creditoActivoDelCliente && isAdmin && (
                         <>
                           <button
@@ -369,7 +374,6 @@ export default function Clientes() {
                 </div>
               </div>
 
-              {/* Datos de Fiador */}
               <div className="flex flex-col shadow-lg rounded-xl overflow-hidden border border-gray-600/30">
                 <div className="bg-gray-300 py-2.5 text-center">
                   <h3 className="text-[#111927] font-black text-[15px] uppercase tracking-widest">
@@ -401,7 +405,6 @@ export default function Clientes() {
               </div>
             </div>
 
-            {/* --- SISTEMA DE PESTAÑAS (TABS) --- */}
             <div className="flex gap-2 mb-4 bg-[#1a2235] p-1.5 rounded-xl border border-gray-700/50 w-fit">
               <button
                 onClick={() => setPestañaModal('CREDITOS')}
@@ -421,7 +424,6 @@ export default function Clientes() {
               </button>
             </div>
 
-            {/* CONTENIDO PESTAÑA: CRÉDITOS */}
             {pestañaModal === 'CREDITOS' && (
               <div className="bg-[#1a2235] rounded-xl p-5 border border-gray-700/40">
                 {!clienteSeleccionado.historial_creditos || clienteSeleccionado.historial_creditos.length === 0 ? (
@@ -467,7 +469,6 @@ export default function Clientes() {
               </div>
             )}
 
-            {/* CONTENIDO PESTAÑA: ABONOS */}
             {pestañaModal === 'ABONOS' && (
               <div className="bg-[#1a2235] rounded-xl p-5 border border-gray-700/40">
                 {cargandoAbonos ? (
@@ -475,7 +476,7 @@ export default function Clientes() {
                 ) : historialAbonosModal.length === 0 ? (
                   <p className="text-gray-400 text-xs text-center py-8">Este cliente aún no registra abonos.</p>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2">
+                  <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-2">
                     {historialAbonosModal.map((abono) => (
                       <div key={abono.id} className="bg-[#151c2c] rounded-xl p-4 border border-green-500/20 flex justify-between items-center hover:bg-[#1a2235] transition">
                         <div className="flex items-center gap-3">
@@ -489,9 +490,18 @@ export default function Clientes() {
                             </p>
                           </div>
                         </div>
-                        <span className="text-[10px] bg-green-500/20 text-green-400 font-bold px-2 py-1 rounded-md border border-green-500/30">
-                          COMPLETADO
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="text-[10px] bg-green-500/20 text-green-400 font-bold px-2 py-1 rounded-md border border-green-500/30 text-center w-full">
+                            COMPLETADO
+                          </span>
+                          <button
+                            onClick={() => generarReciboWhatsApp(abono)}
+                            className="flex items-center gap-1 text-[10px] bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 px-2 py-1 rounded-md transition font-bold uppercase w-full justify-center"
+                            title="Enviar recibo por WhatsApp"
+                          >
+                            <MessageSquare size={12} /> Compartir
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -503,7 +513,6 @@ export default function Clientes() {
         </div>
       )}
 
-      {/* RENDERIZAMOS EL MODAL DE RENOVAR */}
       {creditoActivoDelCliente && (
         <ModalRenovarCredito
           isOpen={modalRenovarAbierto}
@@ -517,7 +526,6 @@ export default function Clientes() {
         />
       )}
 
-      {/* RENDERIZAMOS EL MODAL DE REFINANCIAR */}
       {creditoActivoDelCliente && clienteSeleccionado?.id && (
         <ModalRefinanciarCredito
           isOpen={modalRefinanciarAbierto}

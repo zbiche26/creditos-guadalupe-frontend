@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png';
 import api from '../services/api';
 
 export default function Login() {
@@ -55,7 +54,7 @@ export default function Login() {
 
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      setError('Correo o contraseña incorrectos. Por forma, intenta de nuevo.');
+      setError('Correo o contraseña incorrectos. Por favor, intenta de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -64,23 +63,31 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#152D57] p-4 font-sans">
       
-      <div className="bg-white rounded-[32px] p-10 w-full max-w-[450px] shadow-2xl">
+      <div className="bg-white rounded-[32px] p-10 w-full max-w-[450px] shadow-2xl relative overflow-hidden">
         
-        {/* Logo Circular con el fondo #152D57 */}
-        <div className="flex justify-center mb-6">
-          <div className="w-28 h-28 bg-[#152D57] rounded-full flex items-center justify-center shadow-inner overflow-hidden">
-            <img src={logo} alt="Créditos Guadalupe" className="w-20 h-auto object-contain" />
+        {/* NUEVA IDENTIDAD: SISTEMA DE VENTAS CONTAWAR */}
+        <div className="text-center mb-10 mt-2">
+          
+          {/* Logo Tipográfico Moderno */}
+          <div className="flex justify-center items-center gap-2 mb-2">
+            <div className="w-12 h-12 bg-[#ffc107] rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
+              <span className="text-[#152D57] font-black text-2xl -rotate-3">C</span>
+            </div>
+            <h1 className="text-4xl font-black text-[#152D57] tracking-tight">
+              CONTA<span className="text-[#ffc107]">WAR</span>
+            </h1>
           </div>
-        </div>
-
-        {/* Encabezado */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-black text-slate-800 mb-1">Inicio de Sesión</h2>
-          <p className="text-slate-500 text-sm font-medium">Escriba su correo electrónico</p>
+          
+          <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.3em] mb-8 border-b border-slate-100 pb-4">
+            Sistema de Ventas y Cobranzas
+          </p>
+          
+          <h2 className="text-xl font-bold text-slate-800 mb-1">Inicio de Sesión</h2>
+          <p className="text-slate-500 text-sm font-medium">Ingresa tus credenciales de acceso</p>
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           
           {error && (
             <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm text-center border border-red-200 font-medium">
@@ -96,7 +103,7 @@ export default function Login() {
               type="email"
               required
               className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm px-4 py-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#152D57] focus:border-transparent transition"
-              placeholder="Ej. jeison_arias@gmail.com"
+              placeholder="Ej. admin@estructuratech.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
