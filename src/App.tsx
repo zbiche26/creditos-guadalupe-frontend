@@ -15,6 +15,7 @@ import Ventas from './pages/Ventas';
 import CrearVenta from './pages/CrearVenta';
 import ClientesEnMora from './pages/ClientesEnMora';
 import HistorialGlobalCreditos from './pages/HistorialGlobalCreditos';
+import CreditosActivos from './pages/CreditosActivos'; // <-- NUEVA IMPORTACIÓN DE LIQUIDACIÓN
 
 function App() {
   return (
@@ -31,6 +32,9 @@ function App() {
           <Route path="/clientes/mora" element={<ClientesEnMora />} />
           <Route path="/clientes/:id/creditos" element={<CreditosCliente />} />
           <Route path="/creditos/historial" element={<HistorialGlobalCreditos />} />
+          
+          {/* NUEVA RUTA PARA LA PANTALLA DE CRÉDITOS ACTIVOS (LIQUIDACIÓN RÁPIDA) */}
+          <Route path="/creditos/activos" element={<CreditosActivos />} />
           
           <Route path="/ventas" element={<Ventas />} />
           <Route path="/enrutar" element={<EnrutarClientes />} />

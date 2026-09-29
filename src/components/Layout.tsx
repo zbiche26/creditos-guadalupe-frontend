@@ -232,6 +232,19 @@ export default function Layout() {
                     <span>Historial Créditos</span>
                   </Link>
                 </li>
+                {/* NUEVO BOTÓN DE CRÉDITOS ACTIVOS AQUÍ */}
+                <li>
+                  <Link
+                    to="/creditos/activos"
+                    onClick={cerrarMenuMovil}
+                    className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition ${
+                      location.pathname.includes('/creditos/activos') ? 'text-guadalupe-amarillo font-bold' : 'text-guadalupe-blanco/60 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <CreditCard size={14} className="text-blue-400" />
+                    <span>Créditos Activos</span>
+                  </Link>
+                </li>
               </ul>
             )}
           </div>
@@ -341,7 +354,6 @@ export default function Layout() {
                           key={i} 
                           onClick={() => {
                             setNotifOpen(false);
-                            // Al dar clic, navegamos directo a la pantalla de pago de ese cliente
                             navigate(`/clientes/${n.id}/creditos`, { state: { cliente: n } });
                           }}
                           className={`p-3 rounded-xl border transition cursor-pointer hover:bg-[#2a354a] flex flex-col gap-1 ${
