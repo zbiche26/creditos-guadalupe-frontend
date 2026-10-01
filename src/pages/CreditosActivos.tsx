@@ -38,9 +38,12 @@ export default function CreditosActivos() {
   const [modalRenovarAbierto, setModalRenovarAbierto] = useState(false);
   const [modalRefinanciarAbierto, setModalRefinanciarAbierto] = useState(false);
 
-  // VERIFICAR ROL PARA MOSTRAR BOTONES
-  const usuarioRol = localStorage.getItem('usuario_rol') || 'COBRADOR';
-  const isAdmin = usuarioRol === 'ADMIN';
+  // --- VERIFICAR ROL (A PRUEBA DE BALAS PARA VERCEL) ---
+  const usuarioRol = (localStorage.getItem('usuario_rol') || '').toUpperCase();
+  const usuarioEmail = (localStorage.getItem('usuario_email') || '').toLowerCase();
+  
+  // Validamos si tiene rol explícito de ADMIN, si el correo dice admin, o si tiene comillas extra
+  const isAdmin = usuarioRol.includes('ADMIN') || usuarioEmail.includes('admin') || usuarioRol === '"ADMIN"';
 
   // --- LÓGICA DE MEMORIA HASTA LA MEDIANOCHE ---
   const obtenerFechaHoy = () => {
