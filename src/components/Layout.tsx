@@ -16,6 +16,9 @@ export default function Layout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
+  // ESTADO PARA EL LOGO PERSONALIZADO
+  const [logoEmpresa, setLogoEmpresa] = useState<string | null>(null);
+
   // Estados para el Buscador Global
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [resultadosBusqueda, setResultadosBusqueda] = useState<any[]>([]);
@@ -39,6 +42,15 @@ export default function Layout() {
     } else {
       setUserRole('ADMIN'); 
     }
+
+    // --- CARGAR EL LOGO PERSONALIZADO DE LA MEMORIA ---
+    const cargarLogo = () => {
+      const logoGuardado = localStorage.getItem('empresa_logo');
+      if (logoGuardado) setLogoEmpresa(logoGuardado);
+    };
+    
+    cargarLogo(); // Carga inicial
+    window.addEventListener('logoActualizado', cargarLogo); // Escucha si se cambia en la Configuración
 
     // --- NUEVO SISTEMA DE NOTIFICACIONES DE COBROS ---
     const cargarNotificaciones = async () => {
@@ -67,6 +79,9 @@ export default function Layout() {
     };
     
     cargarNotificaciones();
+
+    // Limpiamos el event listener al desmontar
+    return () => window.removeEventListener('logoActualizado', cargarLogo);
   }, []);
 
   const handleBusquedaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,7 +150,8 @@ export default function Layout() {
         </div>
 
         <div className="pt-8 pb-8 px-6 text-center flex justify-center">
-          <img src={logo} alt="Logo" className="w-36 h-auto object-contain" />
+          {/* AQUÍ SE MUESTRA EL LOGO SUBIDO O EL POR DEFECTO */}
+          <img src={logoEmpresa || logo} alt="Logo Empresa" className="w-36 h-auto object-contain rounded-lg bg-transparent" />
         </div>
 
         <nav className="flex-1 flex flex-col gap-1.5 py-2">
@@ -232,7 +248,6 @@ export default function Layout() {
                     <span>Historial Créditos</span>
                   </Link>
                 </li>
-                {/* NUEVO BOTÓN DE CRÉDITOS ACTIVOS AQUÍ */}
                 <li>
                   <Link
                     to="/creditos/activos"
@@ -393,11 +408,22 @@ export default function Layout() {
                 onClick={() => setProfileOpen(!profileOpen)}
               >
                 <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center overflow-hidden border border-white/20 bg-orange-100">
-                  <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreUsuario}&backgroundColor=ffdfbf`}
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
-                  />
+                  
+                  {/* AQUÍ ESTÁ LA MAGIA DEL LOGO EN EL AVATAR SUPERIOR */}
+                  {logoEmpresa ? (
+                    <img
+                      src={logoEmpresa}
+                      alt="Perfil Empresa"
+                      className="w-full h-full object-cover bg-white"
+                    />
+                  ) : (
+                    <img
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreUsuario}&backgroundColor=ffdfbf`}
+                      alt="Avatar Default"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+
                 </div>
                 <div className="text-left hidden lg:block">
                   <p className="text-sm font-bold leading-tight text-white">{nombreUsuario}</p>
