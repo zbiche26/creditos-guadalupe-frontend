@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 export default function ClientesNuevos() {
   const navigate = useNavigate();
 
+  // Estado para guardar las rutas que vienen de la base de datos
+  const [rutasDisponibles, setRutasDisponibles] = useState<any[]>([]);
+
   // 1. Estado del formulario (Mantenemos Manizales por defecto)
   const [formData, setFormData] = useState({
-    empresa_id: "6608657b-4a69-408c-a61f-99e1acbfa636",
+    empresa_id: localStorage.getItem('empresa_id') || "6608657b-4a69-408c-a61f-99e1acbfa636",
     ruta_id: "",
     documento_identidad: "",
     nombre_completo: "",
@@ -25,7 +29,21 @@ export default function ClientesNuevos() {
     fiador_contacto: ""
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 2. Cargar las Rutas al abrir la pantalla
+  useEffect(() => {
+    const cargarRutas = async () => {
+      try {
+        const response = await api.get('/rutas/');
+        const datos = response.data.datos || response.data || [];
+        setRutasDisponibles(datos);
+      } catch (error) {
+        console.error("Error al cargar las rutas:", error);
+      }
+    };
+    cargarRutas();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
@@ -37,29 +55,24 @@ export default function ClientesNuevos() {
     e.preventDefault();
 
     try {
-      const token = localStorage.getItem('token');
-
-      const response = await fetch('http://127.0.0.1:8000/clientes/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        alert('¡Cliente creado con éxito!');
-        // Nos devuelve a la lista de clientes automáticamente
-        navigate('/clientes');
-      } else {
-        const errorData = await response.json();
-        console.error('Error del servidor:', errorData);
-        alert(`FastAPI rechazó los datos: ${JSON.stringify(errorData)}`);
+      // 1. Hacemos una copia de los datos actuales del formulario
+      const datosAEnviar = { ...formData };
+      
+      // 2. Si la ruta está vacía, la convertimos a null explícitamente para evitar el error de UUID
+      if (datosAEnviar.ruta_id === "") {
+        datosAEnviar.ruta_id = null as any;
       }
-    } catch (error) {
-      console.error('Error de red:', error);
-      alert('Error al conectar con FastAPI.');
+
+      // 3. Enviamos los datos limpios a la API
+      await api.post('/clientes/', datosAEnviar);
+      
+      alert('¡Cliente creado con éxito!');
+      navigate('/clientes'); // Nos devuelve a la lista de clientes automáticamente
+
+    } catch (error: any) {
+      console.error('Error del servidor:', error);
+      const detalleError = error.response?.data?.detail || JSON.stringify(error.response?.data);
+      alert(`Error al guardar: ${detalleError}`);
     }
   };
 
@@ -122,7 +135,19 @@ export default function ClientesNuevos() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-guadalupe-blanco/80 font-medium">Ruta:</label>
-                  <input name="ruta_id" value={formData.ruta_id} onChange={handleChange} type="text" className="bg-[#1A2235] text-guadalupe-blanco border border-white/10 rounded px-3 py-2 focus:outline-none focus:border-guadalupe-amarillo transition" placeholder="002" />
+                  <select 
+                    name="ruta_id" 
+                    value={formData.ruta_id} 
+                    onChange={handleChange} 
+                    className="bg-[#1A2235] text-guadalupe-blanco border border-white/10 rounded px-3 py-2 focus:outline-none focus:border-guadalupe-amarillo transition"
+                  >
+                    <option value="">Seleccione una ruta</option>
+                    {rutasDisponibles.map((ruta: any) => (
+                      <option key={ruta.id || ruta.ruta_id} value={ruta.id || ruta.ruta_id}>
+                        {ruta.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
